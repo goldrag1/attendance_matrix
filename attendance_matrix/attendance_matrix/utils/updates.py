@@ -93,13 +93,6 @@ def check_for_updates():
 
 def get_friendly_version(repo_dir, ref="HEAD"):
     """
-    Returns v1.0 or commit hash if no tag.
-    Priority:
-    1. Exact Tag (v1.2)
-    2. Description (v1.2-5-g...)
-    3. Short Hash (a1b2c3d)
-    4. ?
-    """
     Returns version from VERSION file or fallback to git.
     """
     try:
