@@ -26,12 +26,12 @@ def validate_license_hook():
     if status == "Active":
         return
     elif status == "Inactive":
-        frappe.throw(_("License Invalid for this domain. Please contact support."), frappe.PermissionError)
+        frappe.throw(_("Vui lòng liên hệ MinionApp hotline +84989613608 để cấp hoặc gia hạn License. <a href='https://www.minionapp.fun' target='_blank'>www.minionapp.fun</a>"), frappe.PermissionError)
     else:
         # No cache, perform sync check (blocking)
         is_active = check_remote_license()
         if not is_active:
-            frappe.throw(_("Unable to validate license. Please connect to the internet or contact support."), frappe.PermissionError)
+            frappe.throw(_("Vui lòng liên hệ MinionApp hotline +84989613608 để cấp hoặc gia hạn License. <a href='https://www.minionapp.fun' target='_blank'>www.minionapp.fun</a>"), frappe.PermissionError)
 
 def check_remote_license():
     """
@@ -39,7 +39,8 @@ def check_remote_license():
     Returns True if Active, False otherwise.
     """
     settings = frappe.get_single("Attendance Matrix Settings")
-    server_url = settings.license_server_url or "https://erp.minionapp.fun"
+    # Use getattr to safely access the field, fallback to default if missing
+    server_url = getattr(settings, "license_server_url", None) or "https://erp.minionapp.fun"
     site_domain = get_url()
 
     try:
