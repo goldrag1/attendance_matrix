@@ -19,6 +19,12 @@ bench --site [your-site-name] install-app attendance_matrix
 bench migrate
 ```
 
+### 4. Important: Installation Best Practices
+To ensure the **Auto-Update** feature works correctly without permission errors:
+1.  **NEVER** run `bench` commands as `root`.
+2.  **ALWAYS** login as `frappe` (or `frappeuser`) before running `bench get-app`.
+    - This ensures all files are owned by the correct user, allowing the app to update itself smoothly.
+
 ## Usage
 
 1.  **Quick Access**: Go to the **Attendance** list view and click the **"Chấm công nhanh"** button.
