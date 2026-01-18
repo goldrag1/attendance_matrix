@@ -54,7 +54,8 @@ def check_for_updates():
                     if line.startswith('## '):
                         if capture: break 
                         capture = True
-                        params.append(line)
+                        # Don't add the header line itself to params, just start capturing
+                        # params.append(line) 
                     elif capture:
                         params.append(line)
                 
