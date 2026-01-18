@@ -85,21 +85,21 @@ export default {
         // Fixed Columns
         const cols = [
             {
-                headerName: "Phòng ban",
+                headerName: __("Department"),
                 field: "department",
                 pinned: "left",
                 width: 150,
                 cellStyle: { 'text-align': 'left' }
             },
             {
-                headerName: "Mã NV",
+                headerName: __("Employee ID"),
                 field: "name",
                 pinned: "left",
                 width: 100,
                 cellStyle: { 'text-align': 'left' }
             },
             {
-                headerName: "Nhân viên",
+                headerName: __("Employee Name"),
                 field: "employee_name",
                 pinned: "left",
                 width: 200,
@@ -107,7 +107,7 @@ export default {
                 cellStyle: { 'text-align': 'left' }
             },
             {
-                headerName: "Ca",
+                headerName: __("Shift"),
                 field: "default_shift",
                 pinned: "left",
                 width: 120,
@@ -128,7 +128,7 @@ export default {
                             },
                             callback: (r) => {
                                 if (!r.exc) {
-                                    frappe.show_alert(`Đã cập nhật ca: ${params.newValue}`);
+                                    frappe.show_alert(__("Shift updated: {0}", [params.newValue]));
                                 }
                             }
                         });
