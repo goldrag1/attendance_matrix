@@ -27,9 +27,9 @@ Desktop.ini
 .DS_Store
 
 # Compiled Binaries (Normally ignored, but we will force-add them in release branch)
-*.so
-*.pyd
-*.dll
+# *.so
+# *.pyd
+# *.dll
 
 # Node
 node_modules/
