@@ -1,3 +1,6 @@
+## v1.5.3
+- **Security**: Tăng cường bảo mật License. Tích hợp kiểm tra License sâu vào trong logic ứng dụng (tránh việc bypass bằng cách tắt hook).
+
 ## v1.5.2
 - **Hotfix**: Sửa lỗi "Vue Compile Error" do xung đột dấu nháy đơn / kép.
 
