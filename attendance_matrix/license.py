@@ -84,8 +84,9 @@ def check_remote_license():
                 frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
                 return True
             else:
-                # Cache failure for shorter time (1 hour) to allow retry/logging if they fix it
-                frappe.cache().set_value(LICENSE_CACHE_KEY, "Inactive", expires_in_sec=3600)
+                # IMMEDIATE RETRY: Do not cache failure. 
+                # This ensures we log every attempt on the server and allows instant activation.
+                frappe.cache().delete_value(LICENSE_CACHE_KEY) 
                 return False
         else:
             # Server error, fail open or closed? Here failing closed (safe).

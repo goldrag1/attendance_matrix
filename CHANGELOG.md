@@ -1,3 +1,6 @@
+## v1.5.6
+- **Realtime Check**: Bỏ hoàn toàn Cache khi xác thực thất bại. Hệ thống sẽ kiểm tra (và ghi log) mỗi lần truy cập nếu License chưa được kích hoạt, giúp Admin nắm bắt tình hình ngay lập tức.
+
 ## v1.5.5
 - **Optimization**: Giảm thời gian Cache khi Check License thất bại xuống còn 1 giờ (thay vì 24h). Giúp client cập nhật trạng thái nhanh hơn nếu mới mua License.
 
