@@ -187,29 +187,28 @@ class AttendanceMatrixWrapper {
                                 freeze_message: __("Updating & Restarting..."),
                                 callback: (r) => {
                                     if (r.message && r.message.status === "success") {
-                                        if (r.message && r.message.status === "success") {
-                                            let msg = r.message.message;
-                                            frappe.msgprint({
-                                                title: __('Processing'),
-                                                message: msg,
-                                                indicator: 'orange'
-                                            });
-
-                                            // Start polling for server back up
-                                            this.waitForServer();
-                                        }
-                                    },
-                                    error: (r) => {
-                                        // If status is 502/504 or network error, it means server is likely restarting
-                                        console.log("Update outcome:", r);
+                                        let msg = r.message.message;
                                         frappe.msgprint({
-                                            title: __('Restarting'),
-                                            message: __("System is restarting. Please wait for connection..."),
+                                            title: __('Processing'),
+                                            message: msg,
                                             indicator: 'orange'
                                         });
+
+                                        // Start polling for server back up
                                         this.waitForServer();
                                     }
-                                });
+                                },
+                                error: (r) => {
+                                    // If status is 502/504 or network error, it means server is likely restarting
+                                    console.log("Update outcome:", r);
+                                    frappe.msgprint({
+                                        title: __('Restarting'),
+                                        message: __("System is restarting. Please wait for connection..."),
+                                        indicator: 'orange'
+                                    });
+                                    this.waitForServer();
+                                }
+                            });
                         },
                         secondary_action_label: __('Skip'),
                         secondary_action: () => {
