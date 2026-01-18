@@ -30,6 +30,7 @@ class AttendanceMatrixWrapper {
         ];
 
         frappe.require(assets, () => {
+            console.log("Attendance Matrix v1.4.1 Loaded Successfully");
             this.launchVue();
         });
     }

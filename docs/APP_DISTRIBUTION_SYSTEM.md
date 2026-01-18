@@ -118,7 +118,20 @@ Hệ thống đã được lập trình để xử lý tình huống "Không có
     *   Hầu hết các bản cập nhật nhỏ (sửa giao diện, text) **sẽ chạy ngay** mà không cần restart.
     *   Khách hàng chỉ cần nhờ IT can thiệp khi có bản cập nhật lớn (thay đổi logic tính toán).
 
-### 6.2. Cấu hình nâng cao (Tùy chọn)
+### 6.3. Lỗi "Permission Denied" (Không thể cập nhật)
+**Hiện tượng**: Báo lỗi `unable to unlink` hoặc `cannot create directory`.
+**Nguyên nhân**:
+- Do bạn copy file bằng WinSCP với tài khoản `root` (hoặc user khác), nên `frappeuser` không có quyền ghi đè file cũ.
+- Thư mục `.git` bị sở hữu bởi user khác.
+
+**Khắc phục**:
+Sau khi copy thủ công, **BẮT BUỘC** phải chạy lệnh này trên server để cấp quyền lại cho `frappeuser`:
+```bash
+sudo chown -R frappeuser:frappeuser /home/frappeuser/frappe-bench/apps/attendance_matrix
+```
+*(Nếu server của bạn dùng user khác, hãy thay `frappeuser:frappeuser` bằng user tương ứng)*.
+
+### 6.4. Cấu hình nâng cao (Tùy chọn)
 Để App có thể tự động restart mà không cần mật khẩu, Admin server cần cấu hình **sudoers**:
 
 1.  **Cách 1:** Kết nối SSH bằng user `root`.
