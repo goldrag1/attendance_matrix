@@ -18,9 +18,7 @@ def validate_license_hook():
        frappe.session.user == "Guest":
         return
 
-    # Skip validation for Administrator to avoid lockout (Optional, maybe remove for strictness)
-    if frappe.session.user == "Administrator":
-        return
+
 
     # Check Cache
     status = frappe.cache().get_value(LICENSE_CACHE_KEY)
