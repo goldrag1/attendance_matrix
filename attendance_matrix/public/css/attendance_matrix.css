@@ -1,0 +1,112 @@
+/* Attendance Matrix Styles */
+.attendance-matrix-container {
+    padding: 15px;
+    background: #fff;
+    min-height: 600px;
+}
+
+/* Grid Headers & Columns */
+.sunday-header,
+.sunday-col {
+    background-color: #ffe6e6 !important;
+}
+
+.saturday-header,
+.saturday-col {
+    background-color: #fff5f5 !important;
+}
+
+.today-header,
+.today-col {
+    background-color: #e0f7fa !important;
+    /* Sky Blue */
+}
+
+.holiday-header,
+.holiday-col {
+    background-color: #ffcccc !important;
+    color: #c00 !important;
+    font-weight: bold;
+}
+
+/* Status Colors */
+.bg-success-light {
+    background-color: #d4edda !important;
+    color: #155724;
+}
+
+/* P */
+.bg-danger-light {
+    background-color: #f8d7da !important;
+    color: #721c24;
+}
+
+/* KP */
+.bg-warning-light {
+    background-color: #fff3cd !important;
+    color: #856404;
+}
+
+/* Phep */
+.bg-info-light {
+    background-color: #d1ecf1 !important;
+    color: #0c5460;
+}
+
+/* Grid Tweaks */
+.ag-header-cell-label {
+    justify-content: center;
+}
+
+.ag-cell {
+    display: flex;
+    align-items: center;
+    /* justify-content: center; REMOVED to allow text-align left in specific columns */
+}
+
+/* --- SCROLLBAR CUSTOMIZATION --- */
+/* Target AG Grid specifically and global scrollbars if needed */
+::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-left: 1px solid #ddd;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 3px;
+    border: 2px solid #f0f0f0;
+    /* Creates padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+/* Force Full Width & Height on Frappe Page Containers */
+.layout-main-section {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+}
+
+.page-body {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.content {
+    max-width: 100% !important;
+}
+
+/* Ensure our app takes full remaining height */
+.attendance-matrix-app {
+    width: 100%;
+    /* Height is calculated in inline style, but we can enforce flex here potentially */
+}
