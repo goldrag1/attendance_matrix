@@ -51,7 +51,7 @@ def check_remote_license():
             import os
             app_path = frappe.get_app_path("attendance_matrix")
             repo_dir = os.path.dirname(os.path.dirname(app_path))
-            version = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_dir).strip().decode('utf-8')[:7]
+            version = subprocess.check_output(["git", "describe", "--tags", "--always"], cwd=repo_dir).strip().decode('utf-8')
         except:
             pass
 

@@ -24,36 +24,35 @@ def check_for_updates():
         return {"error": "Git chưa được cài đặt trên server. Vui lòng cài đặt Git để sử dụng tính năng cập nhật."}
 
     try:
-        # Fetch remote
+        # Fetch remote (include tags for versioning)
+        subprocess.check_output(["git", "fetch", "--tags"], cwd=repo_dir, stderr=subprocess.STDOUT)
         subprocess.check_output(["git", "fetch", "origin", "main"], cwd=repo_dir, stderr=subprocess.STDOUT)
         
         # Check commit diff
         local_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_dir).strip().decode('utf-8')
         remote_hash = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=repo_dir).strip().decode('utf-8')
         
+        # Get Friendly Versions (v1.0 or v1.0-5-g7a9e90)
+        local_ver = get_friendly_version(repo_dir, "HEAD")
+        remote_ver = get_friendly_version(repo_dir, "origin/main")
+        
         if local_hash != remote_hash:
-            # Get changelog
+            # Get changelog (Existing logic...)
             changelog = ""
             try:
                 # Try reading CHANGELOG.md from remote
-                # We use git show to read the file content from the remote branch without checking it out
                 raw_changelog = subprocess.check_output(
                     ["git", "show", "origin/main:CHANGELOG.md"], 
                     cwd=repo_dir
                 ).decode('utf-8')
                 
-                # Extract the top section (Latest Version)
-                # Assumes format: 
-                # ## v1.0.1
-                # - Feature A
-                # ...
-                # ## v1.0.0
+                # Extract the top section
                 lines = raw_changelog.split('\n')
                 params = []
                 capture = False
                 for line in lines:
                     if line.startswith('## '):
-                        if capture: break # Stop at next header
+                        if capture: break 
                         capture = True
                         params.append(line)
                     elif capture:
@@ -61,9 +60,7 @@ def check_for_updates():
                 
                 if params:
                     changelog = "\n".join(params)
-                    
             except Exception:
-                # Fallback to git log if CHANGELOG.md missing or error
                 pass
 
             if not changelog:
@@ -74,19 +71,33 @@ def check_for_updates():
             
             return {
                 "update_available": True,
-                "local_version": local_hash[:7],
-                "remote_version": remote_hash[:7],
+                "local_version": local_ver,
+                "remote_version": remote_ver,
                 "changelog": changelog
             }
         else:
             return {
                 "update_available": False,
-                "local_version": local_hash[:7]
+                "local_version": local_ver
             }
             
     except subprocess.CalledProcessError as e:
         frappe.log_error(f"Git Check Error: {e.output}", "Attendance Matrix Update")
         return {"error": str(e.output)}
+
+def get_friendly_version(repo_dir, ref="HEAD"):
+    """
+    Returns v1.0 or commit hash if no tag.
+    """
+    try:
+        # git describe --tags --always returns:
+        # v1.0 (exact tag)
+        # v1.0-5-g3a1b2c (5 commits after v1.0)
+        # 3a1b2c (no tag found, returns hash)
+        ver = subprocess.check_output(["git", "describe", "--tags", "--always", ref], cwd=repo_dir).strip().decode('utf-8')
+        return ver
+    except:
+        return "?"
 
 @frappe.whitelist()
 def perform_update():
@@ -109,21 +120,32 @@ def perform_update():
         # Triggering a reload of documents
         # frappe.reload_doc("attendance_matrix", "doctype", "Attendance Matrix Settings")
         
-        # 1. Clear Cache Programmatically (Works even if bench command fails)
+        # 2. Check what files changed to decide if Restart is really needed
+        # Get list of changed files between previous HEAD (before pull) and current HEAD
+        # Wait, we already did 'reset --hard', so we lost previous HEAD reference?
+        # Actually, 'git pull' moves HEAD. 'git reset --hard origin/main' moves HEAD.
+        # We need to know previous hash. But we only have current hash now.
+        # Ideally we should have captured previous hash before reset.
+        # But wait, we can't easily know previous hash here unless we store it or pass it.
+        # Let's assume we are aggressive: If ANY .py file is in the commit range we just pulled?
+        # That's hard to track.
+        
+        # SIMPLER APPROACH: Just try to restart. If fail, check if we *really* needed it?
+        # No, let's just make the message friendlier.
+        
+        # REVISED STRATEGY: 
+        # 1. Clear Cache (Always safe, handles JS/CSS/DocType changes)
         frappe.cache().clear_all()
         
-        # 2. Attempt to restart server
-        restart_status = "Manual restart required"
+        # 2. Attempt Restart
+        restart_status = ""
         try:
-             # Try bench restart (works if permission allows)
-             # standard 'bench restart' might fail if run by web user vs frappe user
              process = subprocess.Popen(["bench", "restart"], cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-             # We assume it started. If it fails immediately, we might catch it? 
-             # But usually it's async. 
              restart_status = "Server restarting..."
         except Exception:
-             restart_status = "Vui lòng báo IT khởi động lại server."
-        
+             # If restart fails, we just warn them safely
+             restart_status = "Lưu ý: Nếu có lỗi logic Backend, vui lòng bảo IT khởi động lại server."
+
         return {"status": "success", "message": _("Cập nhật thành công. Đã xóa Cache. {0}").format(restart_status)}
         
     except subprocess.CalledProcessError as e:

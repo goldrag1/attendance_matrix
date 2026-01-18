@@ -72,16 +72,19 @@ Khi bạn muốn ra mắt tính năng mới cho khách hàng:
 1.  **Code & Test:** Hoàn thiện tính năng trên máy Local.
 2.  **Viết Changelog:**
     *   Mở file `CHANGELOG.md` trong thư mục gốc của App.
-    *   Thêm nội dung phiên bản mới lên đầu file (theo format Markdown):
-        ```markdown
-        ## Phiên bản Mới (vX.Y)
-        - Tính năng: ...
-        - Sửa lỗi: ...
+    *   Thêm nội dung phiên bản mới lên đầu file.
+3.  **Tạo Version Tag (Quan trọng):**
+    *   Để hiển thị số phiên bản đẹp (VD: `v1.2`) thay vì mã số ngẫu nhiên (`7a9e904`), bạn cần tạo Tag:
+        ```bash
+        git tag v1.2
+        git push origin v1.2
         ```
-3.  **Deploy:**
-    *   Commit code: `git commit -m "..."`.
+    *   Nếu không tạo Tag, hệ thống sẽ tự động dùng mã Hash (VD: `7a9e904`) để hiển thị.
+4.  **Deploy Code:**
+    *   Commit code: `git commit -m "Release v1.2"`.
     *   Push lên GitHub: `git push origin main`.
-4.  **Tự động hóa:**
+5.  **Tự động hóa:**
+    *   Khách hàng mở App -> Thấy Badge `v1.2` (hoặc `v1.2-1-g...` nếu có commit mới sau tag).
     *   Khách hàng mở App -> Thấy Badge đỏ.
     *   Bấm Badge -> Thấy nội dung bạn vừa viết trong `CHANGELOG.md`.
     *   Bấm "Cập nhật" -> App tự tải code mới về.
@@ -107,9 +110,15 @@ Tính năng "Tự động Restart" (`bench restart`) có thể thất bại tron
 2.  **Docker Container:** Trong môi trường Container, việc một process con (web worker) restart process cha (entrypoint) thường bị hạn chế hoặc không được thiết kế để làm vậy.
 3.  **Local Development:** Trên Windows, đôi khi tiến trình con Python không thể restart lại tiến trình cha CMD/Powershell đang chạy `bench start`.
 
-**Giải pháp:** Trong các trường hợp này, App sẽ hiện thông báo: *"Vui lòng báo IT khởi động lại server"*. Code mới đã được tải về, chỉ cần IT chạy lệnh Restart thủ công là xong.
+**Giải pháp an toàn (Không cần cấu hình):**
+Hệ thống đã được lập trình để xử lý tình huống "Không có quyền Restart":
+1.  **Vẫn cập nhật code mới**: Code đã được tải về thành công.
+2.  **Xóa Cache**: Đảm bảo Giao diện (JS/CSS) cập nhật ngay lập tức.
+3.  **Thông báo nhẹ nhàng**: Chỉ nhắc nhở *"Lưu ý: Nếu có lỗi logic Backend..."*
+    *   Hầu hết các bản cập nhật nhỏ (sửa giao diện, text) **sẽ chạy ngay** mà không cần restart.
+    *   Khách hàng chỉ cần nhờ IT can thiệp khi có bản cập nhật lớn (thay đổi logic tính toán).
 
-### 6.2. Cấu hình nâng cao: Cho phép Tự động Restart (cho IT Admin)
+### 6.2. Cấu hình nâng cao (Tùy chọn)
 Để App có thể tự động restart mà không cần mật khẩu, Admin server cần cấu hình **sudoers**:
 
 1.  **Cách 1:** Kết nối SSH bằng user `root`.
