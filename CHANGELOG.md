@@ -1,3 +1,8 @@
+## v1.4.3
+- **Test Zip Update**: Kiểm thử cơ chế cập nhật mới (Zip Download) không phụ thuộc Git.
+- **Frontend**: Log "v1.4.3 (Zip) Loaded Successfully".
+- **Backend**: Update tag "v1.4.3 (Zip) Loaded".
+
 ## v1.4.2
 - **Test Auto-Update**: Lần kiểm tra cuối cùng sau khi fix quyền hạn (Permissions).
 - **Frontend**: Log "v1.4.2 Loaded Successfully".

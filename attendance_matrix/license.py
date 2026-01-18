@@ -3,7 +3,12 @@ from frappe import _
 import requests
 from frappe.utils import get_url
 
-# Verification Tag: v1.4.2 Loaded
+import frappe
+from frappe import _
+import requests
+from frappe.utils import get_url
+
+# Verification Tag: v1.4.3 (Zip) Loaded
 
 LICENSE_CACHE_KEY = "attendance_matrix_license_status"
 LICENSE_CHECK_INTERVAL = 24 * 60 * 60 # 24 hours
