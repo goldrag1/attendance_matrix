@@ -499,7 +499,7 @@ class AttendanceMatrixWrapper {
                                     <div v-if="activeTab==='status'">
                                         <div class="alert alert-info small py-1 mb-2">
                                             <i class="fa fa-info-circle"></i> <b>{{ __('Payroll Status Conversion') }}:</b> 
-                                            {{ __('Standard ERPNext status for payroll (Present, Absent, etc.). You can name the display status (e.g., \'Field Work\') but must map it to a standard status.') }}
+                                            {{ __("Standard ERPNext status for payroll (Present, Absent, etc.). You can name the display status (e.g., 'Field Work') but must map it to a standard status.") }}
                                         </div>
                                         <table class="table table-bordered table-sm">
                                             <thead><tr><th>{{ __('Status') }}</th><th>{{ __('Payroll Status') }}</th><th>{{ __('Abbr') }}</th><th>{{ __('Color') }} (Hex)</th><th>#</th></tr></thead>

@@ -1,3 +1,6 @@
+## v1.5.2
+- **Hotfix**: Sửa lỗi "Vue Compile Error" do xung đột dấu nháy đơn / kép.
+
 ## v1.5.1
 - **Bug Fix**: Sửa lỗi "Trắng trang" do vấn đề cú pháp file JS.
 - **i18n**: Dịch hoàn thiện nút "Chấm công nhanh" và các tiêu đề bảng.
