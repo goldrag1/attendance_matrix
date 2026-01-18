@@ -14,3 +14,15 @@ app_license = "MIT"
 doctype_list_js = {
     "Attendance": "public/js/attendance_list.js"
 }
+
+# Request Events
+# ----------------
+before_request = ["attendance_matrix.license.validate_license_hook"]
+
+# Scheduler Events
+# ----------------
+scheduler_events = {
+    "daily": [
+        "attendance_matrix.license.daily_license_check"
+    ]
+}
