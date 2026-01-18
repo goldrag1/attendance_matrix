@@ -1,3 +1,9 @@
+## v1.5.0
+- **Internationalization (i18n)**: 
+    - Full English codebase. (Mã nguồn chuẩn Tiếng Anh).
+    - Added Vietnamese Translation (`vi.csv`). (Hỗ trợ song ngữ Anh-Việt).
+    - Auto-detects user language preference. (Tự động nhận diện ngôn ngữ người dùng).
+
 ## v1.4.3
 - **Test Zip Update**: Kiểm thử cơ chế cập nhật mới (Zip Download) không phụ thuộc Git.
 - **Frontend**: Log "v1.4.3 (Zip) Loaded Successfully".
