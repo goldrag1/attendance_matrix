@@ -174,24 +174,26 @@ class AttendanceMatrixWrapper {
                                 freeze_message: "Đang cập nhật & Khởi động lại...",
                                 callback: (r) => {
                                     if (r.message && r.message.status === "success") {
+                                        let msg = r.message.message;
                                         frappe.msgprint({
-                                            title: 'Thành công',
-                                            message: r.message.message,
-                                            indicator: 'green'
+                                            title: 'Đang xử lý',
+                                            message: msg,
+                                            indicator: 'orange'
                                         });
-                                        // Wait longer for potential restart
-                                        setTimeout(() => window.location.reload(), 10000);
+
+                                        // Start polling for server back up
+                                        this.waitForServer();
                                     }
                                 },
                                 error: (r) => {
-                                    // If status is 502/504 or network error, it means server is restarting
-                                    console.log("Update error (likely restart):", r);
+                                    // If status is 502/504 or network error, it means server is likely restarting
+                                    console.log("Update outcome:", r);
                                     frappe.msgprint({
                                         title: 'Đang khởi động lại',
-                                        message: "Hệ thống đang khởi động lại. Trang sẽ tự tải lại sau 15 giây...",
+                                        message: "Hệ thống đang khởi động lại. Vui lòng chờ kết nối...",
                                         indicator: 'orange'
                                     });
-                                    setTimeout(() => window.location.reload(), 15000);
+                                    this.waitForServer();
                                 }
                             });
                         },
@@ -201,6 +203,27 @@ class AttendanceMatrixWrapper {
                         }
                     });
                     d.show();
+                },
+                waitForServer() {
+                    // Poll the server every 1 second
+                    const interval = setInterval(() => {
+                        fetch('/api/method/ping')
+                            .then(response => {
+                                if (response.ok) {
+                                    clearInterval(interval);
+                                    frappe.msgprint({
+                                        title: 'Kết nối thành công',
+                                        message: 'Hệ thống đã sẵn sàng. Đang tải lại...',
+                                        indicator: 'green'
+                                    });
+                                    setTimeout(() => window.location.reload(), 1000);
+                                }
+                            })
+                            .catch(err => {
+                                // Still down, keep waiting
+                                console.log("Waiting for server...", err);
+                            });
+                    }, 1000);
                 },
                 reload() {
                     store.loadData();
