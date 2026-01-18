@@ -1,3 +1,6 @@
+## v1.5.4
+- **Security Fix**: Giới hạn phạm vi kiểm tra License. Chỉ chặn truy cập khi vào "Attendance Matrix", không khóa toàn bộ ERPNext.
+
 ## v1.5.3
 - **Security**: Tăng cường bảo mật License. Tích hợp kiểm tra License sâu vào trong logic ứng dụng (tránh việc bypass bằng cách tắt hook).
 

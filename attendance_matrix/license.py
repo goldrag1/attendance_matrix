@@ -25,6 +25,13 @@ def validate_license_hook():
        frappe.session.user == "Guest":
         return
 
+    # SCOPE CHECK: Only validate if accessing Attendance Matrix features
+    # 1. Page View: /app/attendance-matrix
+    # 2. API Calls: /api/method/attendance_matrix.*
+    path = frappe.request.path
+    if "attendance_matrix" not in path and "attendance-matrix" not in path:
+        return
+
 
 
     # Check Cache
