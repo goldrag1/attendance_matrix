@@ -1,3 +1,8 @@
+## v1.5.1
+- **Bug Fix**: Sửa lỗi "Trắng trang" do vấn đề cú pháp file JS.
+- **i18n**: Dịch hoàn thiện nút "Chấm công nhanh" và các tiêu đề bảng.
+- **Translations**: Khôi phục đầy đủ file dịch `vi.csv` (sửa lỗi mất dòng).
+
 ## v1.5.0
 - **Internationalization (i18n)**: 
     - Full English codebase. (Mã nguồn chuẩn Tiếng Anh).
