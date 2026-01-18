@@ -1,0 +1,39 @@
+# Task List: Custom Attendance App (Excel-like & localized)
+
+- [ ] **Research & Analysis**
+    - [ ] Explore existing custom apps (especially `po_importer` and any "Matrix" apps) to understand preferred UI/UX patterns. <!-- id: 0 -->
+    - [ ] Analyze ERPNext v15's default Attendance structure to identify gaps for "Excel-like" usage. <!-- id: 1 -->
+- [ ] **Planning & Design**
+    - [ ] Create `implementation_plan.md` detailing the app structure, UI design (Grid/Matrix), and key features. <!-- id: 2 -->
+    - [ ] Define specific "Vietnamese" features (Translations, Holidays, specific OT rules). <!-- id: 3 -->
+    - [ ] Review plan with User. <!-- id: 4 -->
+- [x] **Implementation - Phase 1: App Skeleton & Backend**
+    - [x] Create new app `attendance_matrix`. <!-- id: 5 -->
+    - [x] Add `Page` "Attendance Matrix" and boilerplate `page_name.js/py`. <!-- id: 6 -->
+    - [x] Implement `get_attendance_data` API: Fetch Employees, Attendance, Holidays. <!-- id: 13 -->
+    - [x] Implement `save_attendance_batch` API. <!-- id: 14 -->
+- [x] **Implementation - Phase 2: Frontend (Vue + AG Grid)**
+    - [x] Setup JS structure: `matrix_store.js` (State), `matrix_grid.js` (AG Grid Wrapper), `attendance_matrix.js` (Main). <!-- id: 7 -->
+    - [x] Configure AG Grid: Columns for Days (1-31), Rows for Employees. <!-- id: 15 -->
+    - [x] validte "Excel" features: Drag handle, Range Selection, Copy/Paste. <!-- id: 8 -->
+- [x] **Implementation - Phase 3: Localization & Business Logic**
+    - [x] Highlight weekends (T7/CN) and Holidays. <!-- id: 9 -->
+    - [ ] **Advanced Features**
+    - [x] Shift Dropdown & Auto-link
+    - [x] Smart Input (Abbreviation -> Status)
+    - [x] Dynamic Summary Columns
+    - [x] Dual Status Mapping (Display vs Payroll)
+    - [x] Dynamic Cell Coloring
+    - [/] Shortcut Guide Box (Abbreviation Legend)
+- [ ] **Final Polish**
+    - [x] Page Title "Bảng chấm công" & Full Width Layout
+    - [x] Advanced Filters (Company, Dept, Emp, Shift) aligned in Filter Bar
+    - [x] Toggle "Show Employee ID"
+    - [x] Export to Excel (Styled)
+    - [x] Left Align Text Columns
+- [x] **Verification**
+    - [x] Test Filters
+    - [x] Test Export
+    - [x] Verify Full Width
+    - [x] Test with sample data. <!-- id: 11 -->
+    - [x] Create walkthrough. <!-- id: 12 -->
