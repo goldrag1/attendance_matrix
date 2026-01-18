@@ -1,3 +1,6 @@
+## v1.5.7
+- **Improvement**: Tăng thời gian chờ kiểm tra License (Timeout) lên 10s. Ghi log chi tiết lỗi nếu kiểm tra thất bại để dễ dàng debug.
+
 ## v1.5.6
 - **Realtime Check**: Bỏ hoàn toàn Cache khi xác thực thất bại. Hệ thống sẽ kiểm tra (và ghi log) mỗi lần truy cập nếu License chưa được kích hoạt, giúp Admin nắm bắt tình hình ngay lập tức.
 

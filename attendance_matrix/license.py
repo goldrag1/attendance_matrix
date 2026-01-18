@@ -73,7 +73,7 @@ def check_remote_license():
             "domain": site_domain,
             "app_name": "attendance_matrix",
             "version": version
-        }, timeout=5)
+        }, timeout=10)
         
         if response.status_code == 200:
             result = response.json()
@@ -86,11 +86,13 @@ def check_remote_license():
             else:
                 # IMMEDIATE RETRY: Do not cache failure. 
                 # This ensures we log every attempt on the server and allows instant activation.
-                frappe.cache().delete_value(LICENSE_CACHE_KEY) 
+                frappe.cache().delete_value(LICENSE_CACHE_KEY)
+                # Log why it failed
+                frappe.log_error(f"License Status Denied: {status} for {site_domain}", "Attendance Matrix License")
                 return False
         else:
             # Server error, fail open or closed? Here failing closed (safe).
-            frappe.log_error(f"License Check Failed: {response.text}", "Attendance Matrix License")
+            frappe.log_error(f"License Check Failed ({response.status_code}): {response.text}", "Attendance Matrix License")
             return False
 
     except Exception as e:
