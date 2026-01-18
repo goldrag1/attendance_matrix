@@ -106,22 +106,25 @@ def perform_update():
         # Instead, we can try to reload standard modules or just advise reboot.
         # But let's try to run a simple migrate command if possible, or just reload code.
         
-        # Triggering a reload of documents might be safer than full bench migrate
+        # Triggering a reload of documents
         # frappe.reload_doc("attendance_matrix", "doctype", "Attendance Matrix Settings")
         
-        # Attempt to restart server
+        # 1. Clear Cache Programmatically (Works even if bench command fails)
+        frappe.cache().clear_all()
+        
+        # 2. Attempt to restart server
         restart_status = "Manual restart required"
         try:
              # Try bench restart (works if permission allows)
-             # We run this async or fire-and-forget? No, blocking is fine, it will just kill us.
-             # Actually, if we allow sudo, we might use 'sudo supervisorctl restart all'
-             # But let's try standard 'bench restart'
-             subprocess.Popen(["bench", "restart"], cwd=repo_dir)
+             # standard 'bench restart' might fail if run by web user vs frappe user
+             process = subprocess.Popen(["bench", "restart"], cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+             # We assume it started. If it fails immediately, we might catch it? 
+             # But usually it's async. 
              restart_status = "Server restarting..."
         except Exception:
-             pass
+             restart_status = "Vui lòng báo IT khởi động lại server."
         
-        return {"status": "success", "message": _("Code updated. {0}").format(restart_status)}
+        return {"status": "success", "message": _("Cập nhật thành công. Đã xóa Cache. {0}").format(restart_status)}
         
     except subprocess.CalledProcessError as e:
         frappe.log_error(f"Git Update Error: {e.output}", "Attendance Matrix Update")

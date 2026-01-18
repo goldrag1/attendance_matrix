@@ -97,3 +97,4 @@ Khi bạn muốn ra mắt tính năng mới cho khách hàng:
 ## 5. Security Note
 *   Hệ thống hiện tại dựa trên mã nguồn mở (Open Source).
 *   Để bảo mật logic check license, cần thực hiện **Code Obfuscation** (làm rối mã) hoặc biên dịch thành **Cython** (.so) trước khi bàn giao cho khách hàng rành công nghệ.
+*   **Lưu ý:** Ngay cả khi dùng file `.so`, quy trình cập nhật **vẫn bắt buộc phải Restart Server** giống như file `.py` (vì file .so cũng được load vào RAM).
