@@ -26,10 +26,44 @@ def check_for_updates():
         
         if local_hash != remote_hash:
             # Get changelog
-            changelog = subprocess.check_output(
-                ["git", "log", "HEAD..origin/main", "--pretty=format:%h - %s"], 
-                cwd=repo_dir
-            ).strip().decode('utf-8')
+            changelog = ""
+            try:
+                # Try reading CHANGELOG.md from remote
+                # We use git show to read the file content from the remote branch without checking it out
+                raw_changelog = subprocess.check_output(
+                    ["git", "show", "origin/main:CHANGELOG.md"], 
+                    cwd=repo_dir
+                ).decode('utf-8')
+                
+                # Extract the top section (Latest Version)
+                # Assumes format: 
+                # ## v1.0.1
+                # - Feature A
+                # ...
+                # ## v1.0.0
+                lines = raw_changelog.split('\n')
+                params = []
+                capture = False
+                for line in lines:
+                    if line.startswith('## '):
+                        if capture: break # Stop at next header
+                        capture = True
+                        params.append(line)
+                    elif capture:
+                        params.append(line)
+                
+                if params:
+                    changelog = "\n".join(params)
+                    
+            except Exception:
+                # Fallback to git log if CHANGELOG.md missing or error
+                pass
+
+            if not changelog:
+                changelog = subprocess.check_output(
+                    ["git", "log", "HEAD..origin/main", "--pretty=format:%h - %s"], 
+                    cwd=repo_dir
+                ).strip().decode('utf-8')
             
             return {
                 "update_available": True,
