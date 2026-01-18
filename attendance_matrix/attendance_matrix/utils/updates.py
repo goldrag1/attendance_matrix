@@ -16,6 +16,13 @@ def check_for_updates():
     # Ensure it's a git repo
     setup_git_if_needed(repo_dir)
     
+    
+    # Check if git is installed
+    try:
+        subprocess.check_output(["git", "--version"])
+    except FileNotFoundError:
+        return {"error": "Git chưa được cài đặt trên server. Vui lòng cài đặt Git để sử dụng tính năng cập nhật."}
+
     try:
         # Fetch remote
         subprocess.check_output(["git", "fetch", "origin", "main"], cwd=repo_dir, stderr=subprocess.STDOUT)
