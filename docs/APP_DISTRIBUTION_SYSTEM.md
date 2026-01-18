@@ -98,3 +98,31 @@ Khi bạn muốn ra mắt tính năng mới cho khách hàng:
 *   Hệ thống hiện tại dựa trên mã nguồn mở (Open Source).
 *   Để bảo mật logic check license, cần thực hiện **Code Obfuscation** (làm rối mã) hoặc biên dịch thành **Cython** (.so) trước khi bàn giao cho khách hàng rành công nghệ.
 *   **Lưu ý:** Ngay cả khi dùng file `.so`, quy trình cập nhật **vẫn bắt buộc phải Restart Server** giống như file `.py` (vì file .so cũng được load vào RAM).
+
+## 6. Các hạn chế kỹ thuật (Troubleshooting)
+
+### 6.1. Tại sao Server không tự Restart được?
+Tính năng "Tự động Restart" (`bench restart`) có thể thất bại trong các trường hợp sau:
+1.  **Production Mode (Supervisor):** Tiến trình Web (Gunicorn) thường chạy với quyền user thường (`frappe`), nhưng lệnh restart service (`supervisorctl restart` hoặc `systemctl restart`) lại cần quyền **root** hoặc cấu hình sudo đặc biệt. Nếu chưa cấu hình quyền này, lệnh sẽ bị từ chối.
+2.  **Docker Container:** Trong môi trường Container, việc một process con (web worker) restart process cha (entrypoint) thường bị hạn chế hoặc không được thiết kế để làm vậy.
+3.  **Local Development:** Trên Windows, đôi khi tiến trình con Python không thể restart lại tiến trình cha CMD/Powershell đang chạy `bench start`.
+
+**Giải pháp:** Trong các trường hợp này, App sẽ hiện thông báo: *"Vui lòng báo IT khởi động lại server"*. Code mới đã được tải về, chỉ cần IT chạy lệnh Restart thủ công là xong.
+
+### 6.2. Cấu hình nâng cao: Cho phép Tự động Restart (cho IT Admin)
+Để App có thể tự động restart mà không cần mật khẩu, Admin server cần cấu hình **sudoers**:
+
+1.  **Cách 1:** Kết nối SSH bằng user `root`.
+2.  **Cách 2:** Nếu đang ở user `frappe` (hoặc user thường), hãy dùng lệnh:
+    ```bash
+    sudo visudo
+    ```
+    *(Nhập mật khẩu sudo của user hiện tại nếu được hỏi)*
+
+3.  Thêm dòng sau vào cuối file:
+    ```bash
+    frappe ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl restart all
+    ```
+4.  Lưu lại. 
+
+Khi đã cấu hình như trên, hệ thống sẽ có thể tự động khởi động lại mượt mà 100%.
