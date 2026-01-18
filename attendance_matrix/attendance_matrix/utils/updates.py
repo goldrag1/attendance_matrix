@@ -89,16 +89,29 @@ def check_for_updates():
 def get_friendly_version(repo_dir, ref="HEAD"):
     """
     Returns v1.0 or commit hash if no tag.
+    Priority:
+    1. Exact Tag (v1.2)
+    2. Description (v1.2-5-g...)
+    3. Short Hash (a1b2c3d)
+    4. ?
     """
     try:
-        # git describe --tags --always returns:
-        # v1.0 (exact tag)
-        # v1.0-5-g3a1b2c (5 commits after v1.0)
-        # 3a1b2c (no tag found, returns hash)
+        # 1. Try Exact Match first (Fastest & Cleanest)
+        # git tag --points-at HEAD
+        exact_tag = subprocess.check_output(["git", "tag", "--points-at", ref], cwd=repo_dir).strip().decode('utf-8')
+        if exact_tag:
+            # If multiple tags, take the last one (usually latest)
+            return exact_tag.splitlines()[-1]
+
+        # 2. Try Describe (Relative to nearest tag)
         ver = subprocess.check_output(["git", "describe", "--tags", "--always", ref], cwd=repo_dir).strip().decode('utf-8')
         return ver
     except:
-        return "?"
+        # 3. Fallback to Short Hash
+        try:
+            return subprocess.check_output(["git", "rev-parse", "--short", ref], cwd=repo_dir).strip().decode('utf-8')
+        except:
+            return "?"
 
 @frappe.whitelist()
 def perform_update():
