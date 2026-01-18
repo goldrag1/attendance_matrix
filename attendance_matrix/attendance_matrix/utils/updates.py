@@ -1,83 +1,67 @@
 import frappe
-import subprocess
 import os
+import requests
+import zipfile
+import shutil
+import io
 from frappe import _
+
+GITHUB_URL = "https://github.com/goldrag1/attendance_matrix"
+ZIP_URL = f"{GITHUB_URL}/archive/refs/heads/main.zip"
+VERSION_URL = f"https://raw.githubusercontent.com/goldrag1/attendance_matrix/main/VERSION"
+CHANGELOG_URL = f"https://raw.githubusercontent.com/goldrag1/attendance_matrix/main/CHANGELOG.md"
 
 @frappe.whitelist()
 def check_for_updates():
     """
-    Checks if there are updates available by fetching from remote.
-    Assumes the directory is a git repo, or initializes it if not.
+    Checks if there are updates available by comparing local and remote VERSION file.
+    Does NOT use Git.
     """
-    app_path = frappe.get_app_path("attendance_matrix")
-    # Go up one level to the app directory (folder containing setup.py)
-    repo_dir = os.path.dirname(app_path)
-    
-    frappe.log_error(f"DEBUG UPDATE: app_path={app_path}, repo_dir={repo_dir}", "Update Debug")
-    print(f"DEBUG UPDATE: app_path={app_path}, repo_dir={repo_dir}")
-
-    # Ensure it's a git repo
-    setup_git_if_needed(repo_dir)
-    
-    
-    # Check if git is installed
     try:
-        subprocess.check_output(["git", "--version"])
-    except FileNotFoundError:
-        return {"error": "Git chưa được cài đặt trên server. Vui lòng cài đặt Git để sử dụng tính năng cập nhật."}
+        app_path = frappe.get_app_path("attendance_matrix")
+        repo_dir = os.path.dirname(app_path)
 
-    try:
-        # 1. Fetch History (Shallow but deep enough)
-        subprocess.check_output(["git", "fetch", "origin", "main", "--depth=100", "--force"], cwd=repo_dir, stderr=subprocess.STDOUT)
-        
-        # 2. Fetch Tags (Explicitly)
+        # 1. Get Local Version
+        local_ver = "?"
+        version_file = os.path.join(repo_dir, "VERSION")
+        if os.path.exists(version_file):
+            with open(version_file, "r") as f:
+                local_ver = f.read().strip()
+
+        # 2. Get Remote Version via HTTP
         try:
-             subprocess.check_output(["git", "fetch", "--tags", "--force"], cwd=repo_dir, stderr=subprocess.STDOUT)
-        except:
-             pass
+            r = requests.get(VERSION_URL, timeout=5)
+            if r.status_code == 200:
+                remote_ver = r.text.strip()
+            else:
+                return {"error": f"Không thể kết nối đến GitHub (Status: {r.status_code})"}
+        except Exception as e:
+             return {"error": f"Lỗi kết nối mạng: {str(e)}"}
 
-        # Check commit diff
-        local_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_dir).strip().decode('utf-8')
-        remote_hash = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=repo_dir).strip().decode('utf-8')
-        
-        # Get Friendly Versions (v1.0 or v1.0-5-g7a9e90)
-        local_ver = get_friendly_version(repo_dir, "HEAD")
-        remote_ver = get_friendly_version(repo_dir, "origin/main")
-        
-        if local_hash != remote_hash:
-            # Get changelog (Existing logic...)
-            changelog = ""
+        # 3. Compare
+        if local_ver != remote_ver:
+            # Fetch Changelog
+            changelog = "Không thể tải lịch sử thay đổi."
             try:
-                # Try reading CHANGELOG.md from remote
-                raw_changelog = subprocess.check_output(
-                    ["git", "show", "origin/main:CHANGELOG.md"], 
-                    cwd=repo_dir
-                ).decode('utf-8')
-                
-                # Extract the top section
-                lines = raw_changelog.split('\n')
-                params = []
-                capture = False
-                for line in lines:
-                    if line.startswith('## '):
-                        if capture: break 
-                        capture = True
-                        # Don't add the header line itself to params, just start capturing
-                        # params.append(line) 
-                    elif capture:
-                        params.append(line)
-                
-                if params:
-                    changelog = "\n".join(params)
-            except Exception:
+                c = requests.get(CHANGELOG_URL, timeout=5)
+                if c.status_code == 200:
+                    # Extract top section (simplistic approach: read until next '## v')
+                    lines = c.text.split('\n')
+                    params = []
+                    capture = False
+                    for line in lines:
+                        if line.startswith('## '):
+                            if capture: break 
+                            capture = True 
+                        elif capture:
+                            params.append(line)
+                    if params:
+                        changelog = "\n".join(params)
+                    else:
+                        changelog = "Phiên bản mới: " + remote_ver
+            except:
                 pass
 
-            if not changelog:
-                changelog = subprocess.check_output(
-                    ["git", "log", "HEAD..origin/main", "--pretty=format:%h - %s"], 
-                    cwd=repo_dir
-                ).strip().decode('utf-8')
-            
             return {
                 "update_available": True,
                 "local_version": local_ver,
@@ -85,105 +69,70 @@ def check_for_updates():
                 "changelog": changelog
             }
         else:
-            return {
+             return {
                 "update_available": False,
-                "local_version": local_ver
+                "local_version": local_ver,
+                "remote_version": remote_ver
             }
-            
-    except subprocess.CalledProcessError as e:
-        frappe.log_error(f"Git Check Error: {e.output}", "Attendance Matrix Update")
-        return {"error": str(e.output)}
 
-def get_friendly_version(repo_dir, ref="HEAD"):
-    """
-    Returns version from VERSION file or fallback to git.
-    """
-    try:
-        # 1. Try reading VERSION file from git info (Fast & Reliable)
-        # matches refs like HEAD or origin/main
-        ver = subprocess.check_output(["git", "show", f"{ref}:VERSION"], cwd=repo_dir).strip().decode('utf-8')
-        if ver: return ver
-    except:
-        pass
-
-    try:
-        # 2. Fallback to git describe
-        return subprocess.check_output(["git", "describe", "--tags", "--always", ref], cwd=repo_dir).strip().decode('utf-8')
-    except:
-        return "?"
+    except Exception as e:
+        frappe.log_error(f"Check Update Error: {str(e)}", "Attendance Matrix Update")
+        return {"error": str(e)}
 
 @frappe.whitelist()
 def perform_update():
     """
-    Pulls the latest code and runs migrate.
+    Downloads Zip from GitHub, extracts and overwrites local files.
     """
-    app_path = frappe.get_app_path("attendance_matrix")
-    repo_dir = os.path.dirname(app_path)
-    
-    setup_git_if_needed(repo_dir)
-    
     try:
-        # Reset hard to origin/main to force update (WARNING: loses local changes)
-        subprocess.check_output(["git", "reset", "--hard", "origin/main"], cwd=repo_dir, stderr=subprocess.STDOUT)
+        app_path = frappe.get_app_path("attendance_matrix")
+        target_dir = os.path.dirname(app_path) # apps/attendance_matrix/
+
+        # 1. Download Zip
+        r = requests.get(ZIP_URL, stream=True, timeout=30)
+        if r.status_code != 200:
+             frappe.throw(f"Không thể tải file cập nhật (Status: {r.status_code})")
+
+        # 2. Extract to Memory
+        z = zipfile.ZipFile(io.BytesIO(r.content))
         
-        # Run migrate? Running bench commands from python is risky/complex due to env.
-        # Instead, we can try to reload standard modules or just advise reboot.
-        # But let's try to run a simple migrate command if possible, or just reload code.
+        # Git Zip usually has a top folder 'attendance_matrix-main'
+        # We need to extract contents of that folder to 'target_dir'
         
-        # Triggering a reload of documents
-        # frappe.reload_doc("attendance_matrix", "doctype", "Attendance Matrix Settings")
+        root_folder = z.namelist()[0].split('/')[0] # e.g., 'attendance_matrix-main'
         
-        # 2. Check what files changed to decide if Restart is really needed
-        # Get list of changed files between previous HEAD (before pull) and current HEAD
-        # Wait, we already did 'reset --hard', so we lost previous HEAD reference?
-        # Actually, 'git pull' moves HEAD. 'git reset --hard origin/main' moves HEAD.
-        # We need to know previous hash. But we only have current hash now.
-        # Ideally we should have captured previous hash before reset.
-        # But wait, we can't easily know previous hash here unless we store it or pass it.
-        # Let's assume we are aggressive: If ANY .py file is in the commit range we just pulled?
-        # That's hard to track.
+        for file_info in z.infolist():
+            if file_info.filename.endswith('/'): continue # Skip directories
+            
+            # Remove the top folder from path
+            # e.g. 'attendance_matrix-main/attendance_matrix/hooks.py' -> 'attendance_matrix/hooks.py'
+            rel_path = file_info.filename[len(root_folder)+1:] 
+            
+            if not rel_path: continue
+
+            # Construct full destination path
+            dest_path = os.path.join(target_dir, rel_path)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            
+            # Write file (Overwrite)
+            with open(dest_path, "wb") as f:
+                f.write(z.read(file_info))
+
+        # 3. Post Update Actions
+        frappe.clear_cache()
         
-        # SIMPLER APPROACH: Just try to restart. If fail, check if we *really* needed it?
-        # No, let's just make the message friendlier.
-        
-        # REVISED STRATEGY: 
-        # 1. Clear Cache (Safe global method)
-        try:
-            frappe.clear_cache()
-        except:
-            pass
-        
-        # 2. Attempt Restart
         restart_status = ""
         try:
-             process = subprocess.Popen(["bench", "restart"], cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-             restart_status = "Server restarting..."
-        except Exception:
-             # If restart fails, we just warn them safely
-             restart_status = "Lưu ý: Nếu có lỗi logic Backend, vui lòng bảo IT khởi động lại server."
-
-        return {"status": "success", "message": _("Cập nhật thành công. Đã xóa Cache. {0}").format(restart_status)}
-        
-    except subprocess.CalledProcessError as e:
-        frappe.log_error(f"Git Update Error: {e.output}", "Attendance Matrix Update")
-        frappe.throw(_("Update failed: {0}").format(e.output.decode('utf-8')))
-
-def setup_git_if_needed(repo_dir):
-    """
-    Checks if .git exists, if not, initializes and connects to remote.
-    """
-    git_dir = os.path.join(repo_dir, ".git")
-    if not os.path.exists(git_dir):
-        # Init
-        subprocess.check_output(["git", "init"], cwd=repo_dir)
-        # Add Remote (Public HTTPS)
-        subprocess.check_output(["git", "remote", "add", "origin", "https://github.com/goldrag1/attendance_matrix.git"], cwd=repo_dir)
-        # Fetch
-        subprocess.check_output(["git", "fetch", "--all"], cwd=repo_dir)
-        # Reset to main
-        try:
-             subprocess.check_output(["git", "reset", "--hard", "origin/main"], cwd=repo_dir)
-             # Set upstream
-             subprocess.check_output(["git", "branch", "--set-upstream-to=origin/main", "main"], cwd=repo_dir)
+             # Try restart if permissions allow
+             subprocess.Popen(["bench", "restart"], cwd=target_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+             restart_status = "Server đang khởi động lại..."
         except:
-             pass
+             restart_status = "Vui lòng khởi động lại server nếu có lỗi Backend."
+        
+        return {"status": "success", "message": _("Cập nhật thành công lên phiên bản mới nhất! {0}").format(restart_status)}
+
+    except Exception as e:
+        frappe.log_error(f"Zip Update Error: {str(e)}", "Attendance Matrix Update")
+        frappe.throw(_("Lỗi cập nhật: {0}").format(str(e)))
