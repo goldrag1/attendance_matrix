@@ -77,7 +77,8 @@ class AttendanceMatrixWrapper {
                     tempSettings: { status_map: [], shift_map: [] },
                     filterTimeout: null,
                     appVersion: null,
-                    updateAvailable: false
+                    updateAvailable: false,
+                    isChecking: false
                 }
             },
             watch: {
@@ -125,16 +126,17 @@ class AttendanceMatrixWrapper {
             },
             methods: {
                 checkUpdates(isInteractive) {
+                    if (this.isChecking) return;
+                    this.isChecking = true;
+
                     frappe.call({
                         method: "attendance_matrix.attendance_matrix.utils.updates.check_for_updates",
                         callback: (r) => {
+                            this.isChecking = false;
                             if (r.message) {
-                                // Smart Version Display
+                                // Smart Version Display: Ensure exactly one 'v' prefix
                                 let ver = r.message.local_version || "";
-                                // If it looks like a hash (no 'v'), add 'v'. If it has 'v', keep it.
-                                if (ver && !ver.startsWith('v') && !ver.startsWith('V')) {
-                                    ver = 'v' + ver;
-                                }
+                                ver = 'v' + ver.replace(/^v+/i, '');
                                 this.appVersion = ver;
 
                                 if (r.message.update_available) {
@@ -149,6 +151,9 @@ class AttendanceMatrixWrapper {
                                     }
                                 }
                             }
+                        },
+                        error: () => {
+                            this.isChecking = false;
                         }
                     });
                 },
