@@ -11,7 +11,7 @@ def check_for_updates():
     """
     app_path = frappe.get_app_path("attendance_matrix")
     # Go up one level to the app directory (folder containing setup.py)
-    repo_dir = os.path.dirname(os.path.dirname(app_path))
+    repo_dir = os.path.dirname(app_path)
     
     # Ensure it's a git repo
     setup_git_if_needed(repo_dir)
@@ -115,7 +115,7 @@ def perform_update():
     Pulls the latest code and runs migrate.
     """
     app_path = frappe.get_app_path("attendance_matrix")
-    repo_dir = os.path.dirname(os.path.dirname(app_path))
+    repo_dir = os.path.dirname(app_path)
     
     setup_git_if_needed(repo_dir)
     
