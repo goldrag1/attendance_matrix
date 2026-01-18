@@ -1,3 +1,6 @@
+## v1.5.8
+- **Debug**: Hiển thị chi tiết lý do lỗi License ngay trên thông báo (Popup) để Admin dễ dàng xử lý (VD: HTTP 404, Unauthorized, Timeout...). Cập nhật đường dẫn API License chính xác hơn.
+
 ## v1.5.7
 - **Improvement**: Tăng thời gian chờ kiểm tra License (Timeout) lên 10s. Ghi log chi tiết lỗi nếu kiểm tra thất bại để dễ dàng debug.
 

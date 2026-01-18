@@ -42,18 +42,18 @@ def validate_license_hook():
     elif status == "Inactive":
         frappe.throw(_("Vui lòng liên hệ MinionApp hotline +84989613608 để cấp hoặc gia hạn License. <a href='https://www.minionapp.fun' target='_blank'>www.minionapp.fun</a>"), frappe.PermissionError)
     else:
-        # No cache, perform sync check (blocking)
-        is_active = check_remote_license()
+    # No cache, perform sync check (blocking)
+        is_active, reason = check_remote_license()
         if not is_active:
-            frappe.throw(_("Vui lòng liên hệ MinionApp hotline +84989613608 để cấp hoặc gia hạn License. <a href='https://www.minionapp.fun' target='_blank'>www.minionapp.fun</a>"), frappe.PermissionError)
+            # Show the specific technical reason for debugging
+            frappe.throw(_(f"Giấy phép không hợp lệ ({reason}).<br>Vui lòng liên hệ MinionApp hotline +84989613608. <a href='https://www.minionapp.fun' target='_blank'>www.minionapp.fun</a>"), frappe.PermissionError)
 
 def check_remote_license():
     """
     Validates the license against the remote server.
-    Returns True if Active, False otherwise.
+    Returns (True, "OK") if Active, (False, "Reason") otherwise.
     """
     settings = frappe.get_single("Attendance Matrix Settings")
-    # Use getattr to safely access the field, fallback to default if missing
     server_url = getattr(settings, "license_server_url", None) or "https://erp.minionapp.fun"
     site_domain = get_url()
 
@@ -69,7 +69,7 @@ def check_remote_license():
         except:
             pass
 
-        response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", json={
+        response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", json={
             "domain": site_domain,
             "app_name": "attendance_matrix",
             "version": version
@@ -77,27 +77,39 @@ def check_remote_license():
         
         if response.status_code == 200:
             result = response.json()
-            # Expecting response like: {"message": {"status": "Active"}}
             status = result.get("message", {}).get("status")
             
             if status == "Active":
                 frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
-                return True
+                return True, "Active"
             else:
-                # IMMEDIATE RETRY: Do not cache failure. 
-                # This ensures we log every attempt on the server and allows instant activation.
                 frappe.cache().delete_value(LICENSE_CACHE_KEY)
-                # Log why it failed
                 frappe.log_error(f"License Status Denied: {status} for {site_domain}", "Attendance Matrix License")
-                return False
+                return False, f"Status: {status}"
+        elif response.status_code == 404:
+             # Try legacy path if nested path fails
+             response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", json={
+                "domain": site_domain,
+                "app_name": "attendance_matrix",
+                "version": version
+            }, timeout=10)
+             if response.status_code == 200:
+                 result = response.json()
+                 status = result.get("message", {}).get("status")
+                 if status == "Active":
+                    frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
+                    return True, "Active"
+                 else:
+                    return False, f"Status: {status}"
+             
+             return False, f"Server API 404 (Path Not Found)"
         else:
-            # Server error, fail open or closed? Here failing closed (safe).
             frappe.log_error(f"License Check Failed ({response.status_code}): {response.text}", "Attendance Matrix License")
-            return False
+            return False, f"HTTP {response.status_code}"
 
     except Exception as e:
         frappe.log_error(f"License Check Error: {str(e)}", "Attendance Matrix License Error")
-        return False
+        return False, f"Error: {str(e)}"
 
 def daily_license_check():
     """
