@@ -144,8 +144,11 @@ def perform_update():
         # No, let's just make the message friendlier.
         
         # REVISED STRATEGY: 
-        # 1. Clear Cache (Always safe, handles JS/CSS/DocType changes)
-        frappe.cache().clear_all()
+        # 1. Clear Cache (Safe global method)
+        try:
+            frappe.clear_cache()
+        except:
+            pass
         
         # 2. Attempt Restart
         restart_status = ""
