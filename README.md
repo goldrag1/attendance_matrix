@@ -37,3 +37,33 @@ To ensure the **Auto-Update** feature works correctly without permission errors:
     *(**Truy cập nhanh**: Vào danh sách **Attendance** và bấm nút **"Chấm công nhanh"**)*.
 2.  **Direct Link**: Navigate to `/app/attendance-matrix` in your browser.
     *(**Link trực tiếp**: Truy cập đường dẫn `/app/attendance-matrix` trên trình duyệt)*.
+## Troubleshooting / Khắc phục sự cố
+
+### Issue: "AppNotInstalledError" or "TypeError" during install
+*(Lỗi: "AppNotInstalledError" hoặc "TypeError" khi cài đặt)*
+
+**Cause**: This is a known bug in Frappe Bench **v5.27.0**. The bench tries to build assets before the app is fully registered.
+*(**Nguyên nhân**: Đây là lỗi của Frappe Bench **v5.27.0**. Bench cố gắng build assets trước khi app được đăng ký xong.)*
+
+**Solution A: Update Bench (Recommended)**
+*(**Giải pháp A: Cập nhật Bench (Khuyên dùng)**)*
+```bash
+pip3 install --upgrade frappe-bench
+```
+
+**Solution B: Manual Install (If update is not possible)**
+*(**Giải pháp B: Cài đặt thủ công (Nếu không thể cập nhật)**)*
+
+1.  Clone the app manually:
+    ```bash
+    git clone https://github.com/goldrag1/attendance_matrix apps/attendance_matrix
+    ```
+2.  Install python dependencies:
+    ```bash
+    ./env/bin/pip install -e apps/attendance_matrix
+    ```
+3.  Add `attendance_matrix` to `sites/apps.txt`.
+4.  Install to site:
+    ```bash
+    bench --site [your-site-name] install-app attendance_matrix
+    ```
