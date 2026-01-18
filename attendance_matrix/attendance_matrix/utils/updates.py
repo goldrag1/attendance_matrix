@@ -34,14 +34,14 @@ def check_for_updates():
             if r.status_code == 200:
                 remote_ver = r.text.strip()
             else:
-                return {"error": f"Không thể kết nối đến GitHub (Status: {r.status_code})"}
+                return {"error": _("Cannot connect to GitHub (Status: {0})").format(r.status_code)}
         except Exception as e:
-             return {"error": f"Lỗi kết nối mạng: {str(e)}"}
+             return {"error": _("Network Connection Error: {0}").format(str(e))}
 
         # 3. Compare
         if local_ver != remote_ver:
             # Fetch Changelog
-            changelog = "Không thể tải lịch sử thay đổi."
+            changelog = _("Cannot load change history.")
             try:
                 c = requests.get(CHANGELOG_URL, timeout=5)
                 if c.status_code == 200:
@@ -58,7 +58,7 @@ def check_for_updates():
                     if params:
                         changelog = "\n".join(params)
                     else:
-                        changelog = "Phiên bản mới: " + remote_ver
+                        changelog = _("New Version: {0}").format(remote_ver)
             except:
                 pass
 
@@ -91,7 +91,7 @@ def perform_update():
         # 1. Download Zip
         r = requests.get(ZIP_URL, stream=True, timeout=30)
         if r.status_code != 200:
-             frappe.throw(f"Không thể tải file cập nhật (Status: {r.status_code})")
+             frappe.throw(_("Cannot download update file (Status: {0})").format(r.status_code))
 
         # 2. Extract to Memory
         z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -127,12 +127,12 @@ def perform_update():
         try:
              # Try restart if permissions allow
              subprocess.Popen(["bench", "restart"], cwd=target_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-             restart_status = "Server đang khởi động lại..."
+             restart_status = _("Server is restarting...")
         except:
-             restart_status = "Vui lòng khởi động lại server nếu có lỗi Backend."
+             restart_status = _("Please restart server manually if backend errors occur.")
         
-        return {"status": "success", "message": _("Cập nhật thành công lên phiên bản mới nhất! {0}").format(restart_status)}
+        return {"status": "success", "message": _("Update successful! Cache cleared. {0}").format(restart_status)}
 
     except Exception as e:
         frappe.log_error(f"Zip Update Error: {str(e)}", "Attendance Matrix Update")
-        frappe.throw(_("Lỗi cập nhật: {0}").format(str(e)))
+        frappe.throw(_("Update failed: {0}").format(str(e)))

@@ -15,6 +15,15 @@ Hệ thống hoạt động theo mô hình **Client-Server**:
 *   Hầu hết các server chạy Frappe/ERPNext đều đã cài sẵn Git (vì `bench` cần Git để hoạt động).
 *   Nếu chưa có, cần cài đặt: `sudo apt-get install git`.
 
+### 1.2. Lưu ý quan trọng khi cài đặt (Installation Best Practices)
+Để tránh hoàn toàn lỗi "Permission Denied" ngay từ đầu, khi cài đặt App mới bằng `bench get-app`, bạn **BẮT BUỘC** phải tuân thủ nguyên tắc:
+
+1.  **KHÔNG BAO GIỜ** chạy lệnh `bench` với quyền `root` (dù `bench` cũng thường chặn việc này).
+2.  **LUÔN LUÔN** đăng nhập bằng user `frappe` (hoặc `frappeuser`) để chạy lệnh install.
+    *   Khi đó, mọi file code tải về sẽ tự động thuộc quyền sở hữu của `frappeuser`.
+    *   Hệ thống Auto-Update sẽ hoạt động ngay lập tức mà không cần chạy lệnh `chown` sửa lỗi.
+
+---
 ---
 
 ## 2. Server Side (`licence_manager`)

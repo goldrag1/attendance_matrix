@@ -1,7 +1,7 @@
 frappe.pages['attendance-matrix'].on_page_load = function (wrapper) {
     var page = frappe.ui.make_app_page({
         parent: wrapper,
-        title: 'Bảng chấm công',
+        title: __('Attendance Matrix'),
         single_column: true
     });
 
@@ -53,8 +53,8 @@ class AttendanceMatrixWrapper {
             gridMod = await import(`/assets/attendance_matrix/js/matrix_grid.js?v=${v}`);
         } catch (e) {
             console.error("Failed to load Matrix JS modules", e);
-            frappe.msgprint("Lỗi tải file JS (404 hoặc Syntax Error). Vui lòng check Console.");
-            $container.html('<div class="alert alert-danger">Không thể tải thư viện JS. Hãy chạy bench build.</div>');
+            frappe.msgprint(__("Error loading JS files (404 or Syntax Error). Please check Console."));
+            $container.html('<div class="alert alert-danger">' + __("Cannot load JS libraries. Please run bench build.") + '</div>');
             return;
         }
 
@@ -63,7 +63,7 @@ class AttendanceMatrixWrapper {
 
         // Check if AG Grid is loaded
         if (typeof agGrid === 'undefined') {
-            frappe.msgprint("Thư viện AG Grid chưa được tải. Kiểm tra thư mục public/js/libs.");
+            frappe.msgprint(__("AG Grid library not loaded. Check public/js/libs folder."));
             return;
         }
 
@@ -148,7 +148,7 @@ class AttendanceMatrixWrapper {
                                 } else {
                                     this.updateAvailable = false;
                                     if (isInteractive) {
-                                        frappe.msgprint(`Bạn đang dùng phiên bản mới nhất (${this.appVersion})`);
+                                        frappe.msgprint(__("You are using the latest version ({0})", [this.appVersion]));
                                     }
                                 }
                             }
@@ -160,7 +160,7 @@ class AttendanceMatrixWrapper {
                 },
                 showUpdateDialog(info) {
                     let d = new frappe.ui.Dialog({
-                        title: 'Có phiên bản mới!',
+                        title: __('New Version Available!'),
                         fields: [
                             {
                                 fieldtype: 'HTML',
@@ -168,49 +168,50 @@ class AttendanceMatrixWrapper {
                                 options: `
                                     <div class="text-center mb-3">
                                         <h3 class="text-primary mb-1">${info.remote_version}</h3>
-                                        <p class="text-muted small">Phiên bản hiện tại: ${info.local_version}</p>
+                                        <p class="text-muted small">${__("Current Version")}: ${info.local_version}</p>
                                     </div>
                                     <div class="alert alert-warning small">
-                                        Tính năng mới / Thay đổi:
-                                        <pre class="mt-2 bg-light p-2 rounded text-dark" style="max-height: 150px; overflow-y: auto;">${info.changelog || 'Không có mô tả chi tiết.'}</pre>
+                                        ${__("New Features / Changes")}:
+                                        <pre class="mt-2 bg-light p-2 rounded text-dark" style="max-height: 150px; overflow-y: auto;">${info.changelog || __('No details available.')}</pre>
                                     </div>
-                                    <p class="small text-muted mb-0"><i class="fa fa-info-circle"></i> Hệ thống sẽ tự động khởi động lại sau khi cập nhật.</p>
+                                    <p class="small text-muted mb-0"><i class="fa fa-info-circle"></i> ${__("System will restart automatically after update.")}</p>
                                 `
                             }
                         ],
-                        primary_action_label: `Cập nhật ngay (v${info.remote_version})`,
+                        primary_action_label: __('Update Now') + ` (v${info.remote_version})`,
                         primary_action: () => {
                             d.hide();
                             frappe.call({
                                 method: "attendance_matrix.attendance_matrix.utils.updates.perform_update",
                                 freeze: true,
-                                freeze_message: "Đang cập nhật & Khởi động lại...",
+                                freeze_message: __("Updating & Restarting..."),
                                 callback: (r) => {
                                     if (r.message && r.message.status === "success") {
-                                        let msg = r.message.message;
+                                        if (r.message && r.message.status === "success") {
+                                            let msg = r.message.message;
+                                            frappe.msgprint({
+                                                title: __('Processing'),
+                                                message: msg,
+                                                indicator: 'orange'
+                                            });
+
+                                            // Start polling for server back up
+                                            this.waitForServer();
+                                        }
+                                    },
+                                    error: (r) => {
+                                        // If status is 502/504 or network error, it means server is likely restarting
+                                        console.log("Update outcome:", r);
                                         frappe.msgprint({
-                                            title: 'Đang xử lý',
-                                            message: msg,
+                                            title: __('Restarting'),
+                                            message: __("System is restarting. Please wait for connection..."),
                                             indicator: 'orange'
                                         });
-
-                                        // Start polling for server back up
                                         this.waitForServer();
                                     }
-                                },
-                                error: (r) => {
-                                    // If status is 502/504 or network error, it means server is likely restarting
-                                    console.log("Update outcome:", r);
-                                    frappe.msgprint({
-                                        title: 'Đang khởi động lại',
-                                        message: "Hệ thống đang khởi động lại. Vui lòng chờ kết nối...",
-                                        indicator: 'orange'
-                                    });
-                                    this.waitForServer();
-                                }
-                            });
+                                });
                         },
-                        secondary_action_label: 'Bỏ qua',
+                        secondary_action_label: __('Skip'),
                         secondary_action: () => {
                             d.hide();
                         }
@@ -225,8 +226,8 @@ class AttendanceMatrixWrapper {
                                 if (response.ok) {
                                     clearInterval(interval);
                                     frappe.msgprint({
-                                        title: 'Kết nối thành công',
-                                        message: 'Hệ thống đã sẵn sàng. Đang tải lại...',
+                                        title: __('Connection Successful'),
+                                        message: __('System is ready. Reloading...'),
                                         indicator: 'green'
                                     });
                                     setTimeout(() => window.location.reload(), 1000);
@@ -245,7 +246,7 @@ class AttendanceMatrixWrapper {
                     // Client-side Validation
                     for (let s of this.tempSettings.shift_map) {
                         if (!s.shift_name || !s.start_time || !s.end_time) {
-                            frappe.msgprint("Lỗi: Vui lòng nhập đầy đủ Tên ca, Giờ vào và Giờ ra.");
+                            frappe.msgprint(__("Error: Please enter Shift Name, Start Time and End Time."));
                             return; // Stop here, modal stays OPEN
                         }
                     }
@@ -262,7 +263,7 @@ class AttendanceMatrixWrapper {
                 },
                 confirmDelete(listName, index) {
                     frappe.confirm(
-                        '<b>Cảnh báo:</b> Hành động này sẽ <b>XÓA NGAY LẬP TỨC</b> dữ liệu khỏi hệ thống và không thể hoàn tác.<br>Bạn có chắc chắn muốn xóa?',
+                        '<b>' + __('Warning') + ':</b> ' + __('This action will <b>DELETE IMMEDIATELY</b> data from the system and cannot be undone.<br>Are you sure you want to delete?'),
                         async () => {
                             // 1. Remove from UI
                             this.tempSettings[listName].splice(index, 1);
@@ -276,13 +277,13 @@ class AttendanceMatrixWrapper {
                             if (!this.tempSettings.status_map) this.tempSettings.status_map = [];
                             if (!this.tempSettings.shift_map) this.tempSettings.shift_map = [];
 
-                            frappe.show_alert("Đã xóa vĩnh viễn dòng dữ liệu.");
+                            frappe.show_alert(__("Permanently deleted data row."));
                         }
                     );
                 },
                 confirmDeleteAll(listName) {
                     frappe.confirm(
-                        '<b>Cảnh báo nguy hiểm:</b> Bạn có chắc chắn muốn <b>XÓA SẠCH TOÀN BỘ</b> danh sách này không?<br>Dữ liệu sẽ bị mất vĩnh viễn.',
+                        '<b>' + __('Danger Warning') + ':</b> ' + __('Are you sure you want to <b>DELETE ALL</b> from this list?<br>Data will be lost permanently.'),
                         async () => {
                             this.tempSettings[listName] = [];
                             await store.saveSettings(this.tempSettings);
@@ -292,7 +293,7 @@ class AttendanceMatrixWrapper {
                             if (!this.tempSettings.status_map) this.tempSettings.status_map = [];
                             if (!this.tempSettings.shift_map) this.tempSettings.shift_map = [];
 
-                            frappe.show_alert("Đã xóa sạch toàn bộ danh sách.");
+                            frappe.show_alert(__("Deleted entire list."));
                         }
                     );
                 },
@@ -313,14 +314,14 @@ class AttendanceMatrixWrapper {
                     this.store.filters.department = "";
                     this.store.filters.shift = "";
                     this.store.filters.employee = "";
-                    frappe.show_alert("Đã đặt lại bộ lọc");
+                    frappe.show_alert(__("Filters reset"));
                     this.reload();
                 },
                 toggleFullscreen() {
                     const el = document.getElementById('attendance-matrix-app');
                     if (!document.fullscreenElement) {
                         el.requestFullscreen().catch(err => {
-                            frappe.msgprint(`Lỗi Fullscreen: ${err.message}`);
+                            frappe.msgprint(__("Fullscreen Error: {0}", [err.message]));
                         });
                         // Add class to ensure white background
                         el.classList.add('bg-white');
@@ -336,7 +337,7 @@ class AttendanceMatrixWrapper {
                     <div class="d-flex flex-wrap justify-content-between align-items-center px-3 py-3 border-bottom bg-white flex-shrink-0 gap-3">
                          <!-- Title (Left) -->
                          <div class="d-flex align-items-center gap-3">
-                             <h4 class="mb-0 fw-bold text-dark" style="font-weight: 700;">Bảng chấm công</h4>
+                             <h4 class="mb-0 fw-bold text-dark" style="font-weight: 700;">{{ __('Attendance Matrix') }}</h4>
                              <!-- Update Badge -->
                              <div v-if="appVersion" class="d-flex align-items-center gap-1 cursor-pointer" @click="checkUpdates(true)" title="Click to check for updates">
                                  <span class="badge text-uppercase tracking-wider shadow-sm" 
@@ -350,7 +351,7 @@ class AttendanceMatrixWrapper {
                          <div class="d-flex align-items-center gap-3 ms-auto" style="min-width: 0;">
                              <!-- Legend -->
                              <div class="d-flex align-items-center gap-2 d-none d-xl-flex">
-                                <span class="text-muted small fw-bold text-uppercase tracking-wider">Mã:</span>
+                                <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Code') }}:</span>
                                 <div class="d-flex gap-2 align-items-center">
                                     <div v-for="s in store.settings.status_map" :key="s.abbreviation" class="d-flex align-items-center gap-1">
                                         <span class="badge border text-dark shadow-sm d-flex align-items-center justify-content-center" 
@@ -367,40 +368,40 @@ class AttendanceMatrixWrapper {
                              <!-- Actions -->
                              <div class="d-flex align-items-center gap-2">
                                 <!-- View Dropdown -->
-                                <div class="dropdown">
+                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-light border shadow-sm dropdown-toggle" type="button" data-toggle="dropdown">
-                                        <i class="fa fa-eye text-muted"></i> <span class="d-none d-lg-inline ms-1">Hiển thị</span>
+                                        <i class="fa fa-eye text-muted"></i> <span class="d-none d-lg-inline ms-1">{{ __('Show') }}</span>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow p-2" style="min-width: 200px;">
-                                        <h6 class="dropdown-header text-uppercase small font-weight-bold">Cột hiển thị</h6>
+                                        <h6 class="dropdown-header text-uppercase small font-weight-bold">{{ __('Display Columns') }}</h6>
                                         <div class="dropdown-item px-2 rounded">
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showIds" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('name', this.checked)">
-                                                <label class="custom-control-label" for="showIds">Mã Nhân viên</label>
+                                                <label class="custom-control-label" for="showIds">{{ __('Employee ID') }}</label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showDepts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('department', this.checked)">
-                                                <label class="custom-control-label" for="showDepts">Phòng ban</label>
+                                                <label class="custom-control-label" for="showDepts">{{ __('Department') }}</label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showShifts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('default_shift', this.checked)">
-                                                <label class="custom-control-label" for="showShifts">Ca mặc định</label>
+                                                <label class="custom-control-label" for="showShifts">{{ __('Default Shift') }}</label>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <button class="btn btn-sm btn-light border shadow-sm" @click="resetView" title="Reset Filters">
-                                    <i class="fa fa-refresh text-muted"></i> <span class="d-none d-lg-inline ms-1">Reset</span>
+                                    <i class="fa fa-refresh text-muted"></i> <span class="d-none d-lg-inline ms-1">{{ __('Reset') }}</span>
                                 </button>
                                 <button class="btn btn-sm btn-light border shadow-sm" @click="toggleFullscreen" title="Toàn màn hình">
                                     <i class="fa fa-expand text-muted"></i>
                                 </button>
-                                <button class="btn btn-sm btn-light border shadow-sm" @click="showSettings=true" title="Cấu hình Ca và Mã">
-                                    <i class="fa fa-cog text-muted"></i> <span class="d-none d-xl-inline ms-1">Cấu hình Ca và Mã</span>
+                                <button class="btn btn-sm btn-light border shadow-sm" @click="showSettings=true" title="Config Shifts and Codes">
+                                    <i class="fa fa-cog text-muted"></i> <span class="d-none d-xl-inline ms-1">{{ __('Configuration') }}</span>
                                 </button>
                                 <button class="btn btn-sm btn-success shadow-sm" @click="exportExcel">
-                                    <i class="fa fa-file-excel-o"></i> <span class="d-none d-md-inline ms-1">Xuất Excel</span>
+                                    <i class="fa fa-file-excel-o"></i> <span class="d-none d-md-inline ms-1">{{ __('Export Excel') }}</span>
                                 </button>
                              </div>
                          </div>
@@ -410,29 +411,29 @@ class AttendanceMatrixWrapper {
                     <div class="d-flex justify-content-between align-items-start px-3 py-2 bg-light border-bottom flex-shrink-0">
                          <!-- Left: Filters Group -->
                         <div class="d-flex flex-wrap align-items-start gap-3">
-                             <!-- Filter Item: Cong Ty -->
+                            <!-- Filter Item: Cong Ty -->
                             <div class="d-flex flex-column" style="min-width: 160px;">
-                                <label class="small text-muted fw-bold mb-1 ms-1">Công ty</label>
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Company') }}</label>
                                 <select class="form-select form-select-sm bg-white border-0 shadow-sm" v-model="store.filters.company" style="border-radius: 20px;">
-                                    <option value="">-- Tất cả --</option>
+                                    <option value="">-- {{ __('All') }} --</option>
                                     <option v-for="c in store.filter_options.companies" :value="c">{{ c }}</option>
                                 </select>
                             </div>
 
                             <!-- Filter Item: Phong Ban -->
                             <div class="d-flex flex-column" style="min-width: 160px;">
-                                <label class="small text-muted fw-bold mb-1 ms-1">Phòng ban</label>
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Department') }}</label>
                                 <select class="form-select form-select-sm bg-white border-0 shadow-sm" v-model="store.filters.department" style="border-radius: 20px;">
-                                    <option value="">-- Tất cả --</option>
+                                    <option value="">-- {{ __('All') }} --</option>
                                     <option v-for="d in store.filter_options.departments" :value="d">{{ d }}</option>
                                 </select>
                             </div>
 
                              <!-- Filter Item: Nhan Vien -->
                             <div class="d-flex flex-column" style="min-width: 160px;">
-                                <label class="small text-muted fw-bold mb-1 ms-1">Nhân viên</label>
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Employee') }}</label>
                                 <div class="position-relative">
-                                    <input type="text" class="form-control form-control-sm border-0 shadow-sm ps-3" v-model="store.filters.employee" placeholder="Nhập tên..." list="emp-list" style="border-radius: 20px;">
+                                    <input type="text" class="form-control form-control-sm border-0 shadow-sm ps-3" v-model="store.filters.employee" :placeholder="__('Search...')" list="emp-list" style="border-radius: 20px;">
                                     <i class="fa fa-search text-muted position-absolute" style="right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px;"></i>
                                 </div>
                                 <datalist id="emp-list">
@@ -442,16 +443,16 @@ class AttendanceMatrixWrapper {
 
                              <!-- Filter Item: Chinh Ca -->
                             <div class="d-flex flex-column" style="min-width: 120px;">
-                                <label class="small text-muted fw-bold mb-1 ms-1">Chỉnh Ca</label>
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Shift') }}</label>
                                  <select class="form-select form-select-sm bg-white border-0 shadow-sm" v-model="store.filters.shift" style="border-radius: 20px;">
-                                    <option value="">-- Tất cả --</option>
+                                    <option value="">-- {{ __('All') }} --</option>
                                     <option v-for="s in store.settings.shift_map" :value="s.shift_name">{{ s.shift_name }}</option>
                                 </select>
                             </div>
 
                              <!-- Filter Item: Thang / Nam -->
                             <div class="d-flex flex-column" style="min-width: 140px;">
-                                <label class="small text-muted fw-bold mb-1 ms-1">Tháng / Năm</label>
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Month / Year') }}</label>
                                 <div class="d-flex gap-1">
                                     <select class="form-select form-select-sm bg-white border-0 shadow-sm px-2" v-model="store.filters.month" style="flex: 1; border-radius: 20px;">
                                         <option v-for="m in 12" :value="m">T{{ m }}</option>
@@ -467,7 +468,7 @@ class AttendanceMatrixWrapper {
                         <!-- Right: Employee Count -->
                         <div class="d-flex align-items-center pt-4 flex-shrink-0 ms-3" v-if="store.employees.length > 0">
                              <span class="small text-success fw-bold fst-italic">
-                                Hiển thị: {{ store.employees.length }} nhân sự
+                                {{ __('Showing') }}: {{ store.employees.length }} {{ __('employees') }}
                             </span>
                         </div>
                     </div>
@@ -479,7 +480,7 @@ class AttendanceMatrixWrapper {
                         <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Cấu hình Chấm công</h5>
+                                    <h5 class="modal-title">{{ __('Configuration') }}</h5>
                                     <button type="button" class="close" @click="showSettings = false" aria-label="Close">
                                         <span aria-hidden="true">&times;</span>
                                     </button>
@@ -488,22 +489,21 @@ class AttendanceMatrixWrapper {
                                     <!-- Tabs -->
                                     <ul class="nav nav-tabs mb-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" :class="{active: activeTab==='status'}" href="#" @click.prevent="activeTab='status'">Trạng thái</a>
+                                            <a class="nav-link" :class="{active: activeTab==='status'}" href="#" @click.prevent="activeTab='status'">{{ __('Status') }}</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" :class="{active: activeTab==='shift'}" href="#" @click.prevent="activeTab='shift'">Ca làm việc</a>
+                                            <a class="nav-link" :class="{active: activeTab==='shift'}" href="#" @click.prevent="activeTab='shift'">{{ __('Shift') }}</a>
                                         </li>
                                     </ul>
 
                                     <!-- Status Tab -->
                                     <div v-if="activeTab==='status'">
                                         <div class="alert alert-info small py-1 mb-2">
-                                            <i class="fa fa-info-circle"></i> <b>Quy đổi Lương (Payroll Status):</b> 
-                                            Là trạng thái chuẩn của ERPNext dùng để tính lương (VD: Present, Absent...). 
-                                            Bạn có thể đặt tên hiển thị tùy ý (VD: "Đi thị trường") nhưng phải quy đổi về trạng thái chuẩn này.
+                                            <i class="fa fa-info-circle"></i> <b>{{ __('Payroll Status Conversion') }}:</b> 
+                                            {{ __('Standard ERPNext status for payroll (Present, Absent, etc.). You can name the display status (e.g., "Field Work") but must map it to a standard status.') }}
                                         </div>
                                         <table class="table table-bordered table-sm">
-                                            <thead><tr><th>Trạng thái</th><th>Quy đổi Lương</th><th>Viết tắt</th><th>Màu (Hex)</th><th>#</th></tr></thead>
+                                            <thead><tr><th>{{ __('Status') }}</th><th>{{ __('Payroll Status') }}</th><th>{{ __('Abbr') }}</th><th>{{ __('Color') }} (Hex)</th><th>#</th></tr></thead>
                                             <tbody>
                                                 <tr v-for="(row, idx) in tempSettings.status_map" :key="idx">
                                                     <td><input v-model="row.status" class="form-control form-control-sm"></td>
@@ -523,15 +523,15 @@ class AttendanceMatrixWrapper {
                                             </tbody>
                                         </table>
                                         <div class="d-flex justify-content-between">
-                                            <button class="btn btn-sm btn-light" @click="tempSettings.status_map.push({status:'', abbreviation:'', color:'#ffffff'})">+ Thêm dòng</button>
-                                            <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('status_map')">Reset / Xóa toàn bộ</button>
+                                            <button class="btn btn-sm btn-light" @click="tempSettings.status_map.push({status:'', abbreviation:'', color:'#ffffff'})">+ {{ __('Add Row') }}</button>
+                                            <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('status_map')">{{ __('Reset / Delete All') }}</button>
                                         </div>
                                     </div>
 
                                     <!-- Shift Tab -->
                                     <div v-if="activeTab==='shift'">
                                         <table class="table table-bordered table-sm">
-                                            <thead><tr><th>Tên Ca</th><th>Vào</th><th>Ra</th><th>#</th></tr></thead>
+                                            <thead><tr><th>{{ __('Shift Name') }}</th><th>{{ __('Start') }}</th><th>{{ __('End') }}</th><th>#</th></tr></thead>
                                             <tbody>
                                                 <tr v-for="(row, idx) in tempSettings.shift_map" :key="idx">
                                                     <td><input v-model="row.shift_name" class="form-control form-control-sm"></td>
@@ -542,14 +542,14 @@ class AttendanceMatrixWrapper {
                                             </tbody>
                                         </table>
                                         <div class="d-flex justify-content-between">
-                                            <button class="btn btn-sm btn-light" @click="tempSettings.shift_map.push({shift_name:'', start_time:'', end_time:''})">+ Thêm dòng</button>
-                                            <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('shift_map')">Reset / Xóa toàn bộ</button>
+                                            <button class="btn btn-sm btn-light" @click="tempSettings.shift_map.push({shift_name:'', start_time:'', end_time:''})">+ {{ __('Add Row') }}</button>
+                                            <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('shift_map')">{{ __('Reset / Delete All') }}</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" @click="showSettings = false">Đóng</button>
-                                    <button type="button" class="btn btn-primary" @click="saveSettings">Lưu cấu hình</button>
+                                    <button type="button" class="btn btn-secondary" @click="showSettings = false">{{ __('Close') }}</button>
+                                    <button type="button" class="btn btn-primary" @click="saveSettings">{{ __('Save Configuration') }}</button>
                                 </div>
                             </div>
                         </div>
