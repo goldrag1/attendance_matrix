@@ -1,3 +1,6 @@
+## v1.5.9
+- **Compatibility**: Tự động xử lý lỗi HTTP 417. Nếu Server License chưa cập nhật kịp, Client sẽ tự động chuyển sang chế độ tương thích (không gửi thông tin version) để đảm bảo kết nối luôn thông suốt.
+
 ## v1.5.8
 - **Debug**: Hiển thị chi tiết lý do lỗi License ngay trên thông báo (Popup) để Admin dễ dàng xử lý (VD: HTTP 404, Unauthorized, Timeout...). Cập nhật đường dẫn API License chính xác hơn.
 
