@@ -25,13 +25,23 @@ def check_for_updates():
         remote_hash = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=repo_dir).strip().decode('utf-8')
         
         if local_hash != remote_hash:
+            # Get changelog
+            changelog = subprocess.check_output(
+                ["git", "log", "HEAD..origin/main", "--pretty=format:%h - %s"], 
+                cwd=repo_dir
+            ).strip().decode('utf-8')
+            
             return {
                 "update_available": True,
                 "local_version": local_hash[:7],
-                "remote_version": remote_hash[:7]
+                "remote_version": remote_hash[:7],
+                "changelog": changelog
             }
         else:
-            return {"update_available": False}
+            return {
+                "update_available": False,
+                "local_version": local_hash[:7]
+            }
             
     except subprocess.CalledProcessError as e:
         frappe.log_error(f"Git Check Error: {e.output}", "Attendance Matrix Update")

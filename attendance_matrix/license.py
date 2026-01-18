@@ -45,9 +45,21 @@ def check_remote_license():
     site_domain = get_url()
 
     try:
+        # Get Version
+        version = None
+        try:
+            import subprocess
+            import os
+            app_path = frappe.get_app_path("attendance_matrix")
+            repo_dir = os.path.dirname(os.path.dirname(app_path))
+            version = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_dir).strip().decode('utf-8')[:7]
+        except:
+            pass
+
         response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", json={
             "domain": site_domain,
-            "app_name": "attendance_matrix"
+            "app_name": "attendance_matrix",
+            "version": version
         }, timeout=5)
         
         if response.status_code == 200:

@@ -75,7 +75,9 @@ class AttendanceMatrixWrapper {
                     showGuide: false,
                     activeTab: "status",
                     tempSettings: { status_map: [], shift_map: [] },
-                    filterTimeout: null
+                    filterTimeout: null,
+                    appVersion: null,
+                    updateAvailable: false
                 }
             },
             watch: {
@@ -119,8 +121,76 @@ class AttendanceMatrixWrapper {
                 this.isMounted = true;
                 await store.init();
                 grid.init('#attendance-grid', store); // Pass store instance
+                this.checkUpdates(false); // Silent check on load
             },
             methods: {
+                checkUpdates(isInteractive) {
+                    frappe.call({
+                        method: "attendance_matrix.attendance_matrix.utils.updates.check_for_updates",
+                        callback: (r) => {
+                            if (r.message) {
+                                this.appVersion = r.message.local_version;
+                                if (r.message.update_available) {
+                                    this.updateAvailable = true;
+                                    if (isInteractive) {
+                                        this.showUpdateDialog(r.message);
+                                    }
+                                } else {
+                                    this.updateAvailable = false;
+                                    if (isInteractive) {
+                                        frappe.msgprint(`Bạn đang dùng phiên bản mới nhất (v${this.appVersion})`);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                showUpdateDialog(info) {
+                    let d = new frappe.ui.Dialog({
+                        title: 'Có phiên bản mới!',
+                        fields: [
+                            {
+                                fieldtype: 'HTML',
+                                fieldname: 'details',
+                                options: `
+                                    <div class="text-center mb-3">
+                                        <h3 class="text-primary mb-1">v${info.remote_version}</h3>
+                                        <p class="text-muted small">Phiên bản hiện tại: v${info.local_version}</p>
+                                    </div>
+                                    <div class="alert alert-warning small">
+                                        Tính năng mới / Thay đổi:
+                                        <pre class="mt-2 bg-light p-2 rounded text-dark" style="max-height: 150px; overflow-y: auto;">${info.changelog || 'Không có mô tả chi tiết.'}</pre>
+                                    </div>
+                                    <p class="small text-muted mb-0"><i class="fa fa-info-circle"></i> Hệ thống sẽ tự động khởi động lại sau khi cập nhật.</p>
+                                `
+                            }
+                        ],
+                        primary_action_label: `Cập nhật ngay (v${info.remote_version})`,
+                        primary_action: () => {
+                            d.hide();
+                            frappe.call({
+                                method: "attendance_matrix.attendance_matrix.utils.updates.perform_update",
+                                freeze: true,
+                                freeze_message: "Đang cập nhật...",
+                                callback: (r) => {
+                                    if (r.message && r.message.status === "success") {
+                                        frappe.msgprint({
+                                            title: 'Thành công',
+                                            message: r.message.message,
+                                            indicator: 'green'
+                                        });
+                                        setTimeout(() => window.location.reload(), 3000);
+                                    }
+                                }
+                            });
+                        },
+                        secondary_action_label: 'Bỏ qua',
+                        secondary_action: () => {
+                            d.hide();
+                        }
+                    });
+                    d.show();
+                },
                 reload() {
                     store.loadData();
                 },
@@ -218,7 +288,16 @@ class AttendanceMatrixWrapper {
                     <!-- 1. Unified Header (Title + Legend + Actions) -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center px-3 py-3 border-bottom bg-white flex-shrink-0 gap-3">
                          <!-- Title (Left) -->
-                         <h4 class="mb-0 fw-bold text-dark" style="font-weight: 700;">Bảng chấm công</h4>
+                         <div class="d-flex align-items-center gap-3">
+                             <h4 class="mb-0 fw-bold text-dark" style="font-weight: 700;">Bảng chấm công</h4>
+                             <!-- Update Badge -->
+                             <div v-if="appVersion" class="d-flex align-items-center gap-1 cursor-pointer" @click="checkUpdates(true)" title="Click to check for updates">
+                                 <span class="badge text-uppercase tracking-wider shadow-sm" 
+                                       :class="updateAvailable ? 'bg-danger text-white' : 'bg-light text-muted border'">
+                                     v{{ appVersion }} <i v-if="updateAvailable" class="fa fa-exclamation-circle ms-1"></i>
+                                 </span>
+                             </div>
+                         </div>
 
                          <!-- Interactive Area (Right: Legend + Buttons) -->
                          <div class="d-flex align-items-center gap-3 ms-auto" style="min-width: 0;">
