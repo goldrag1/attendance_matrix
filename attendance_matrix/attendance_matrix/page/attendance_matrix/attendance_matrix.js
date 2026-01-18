@@ -171,7 +171,7 @@ class AttendanceMatrixWrapper {
                             frappe.call({
                                 method: "attendance_matrix.attendance_matrix.utils.updates.perform_update",
                                 freeze: true,
-                                freeze_message: "Đang cập nhật...",
+                                freeze_message: "Đang cập nhật & Khởi động lại...",
                                 callback: (r) => {
                                     if (r.message && r.message.status === "success") {
                                         frappe.msgprint({
@@ -179,8 +179,19 @@ class AttendanceMatrixWrapper {
                                             message: r.message.message,
                                             indicator: 'green'
                                         });
-                                        setTimeout(() => window.location.reload(), 3000);
+                                        // Wait longer for potential restart
+                                        setTimeout(() => window.location.reload(), 10000);
                                     }
+                                },
+                                error: (r) => {
+                                    // If status is 502/504 or network error, it means server is restarting
+                                    console.log("Update error (likely restart):", r);
+                                    frappe.msgprint({
+                                        title: 'Đang khởi động lại',
+                                        message: "Hệ thống đang khởi động lại. Trang sẽ tự tải lại sau 15 giây...",
+                                        indicator: 'orange'
+                                    });
+                                    setTimeout(() => window.location.reload(), 15000);
                                 }
                             });
                         },

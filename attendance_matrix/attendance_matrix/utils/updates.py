@@ -108,9 +108,20 @@ def perform_update():
         
         # Triggering a reload of documents might be safer than full bench migrate
         # frappe.reload_doc("attendance_matrix", "doctype", "Attendance Matrix Settings")
-        # ... reload others ...
         
-        return {"status": "success", "message": _("Code updated. Please restart server or reload bench to apply changes.")}
+        # Attempt to restart server
+        restart_status = "Manual restart required"
+        try:
+             # Try bench restart (works if permission allows)
+             # We run this async or fire-and-forget? No, blocking is fine, it will just kill us.
+             # Actually, if we allow sudo, we might use 'sudo supervisorctl restart all'
+             # But let's try standard 'bench restart'
+             subprocess.Popen(["bench", "restart"], cwd=repo_dir)
+             restart_status = "Server restarting..."
+        except Exception:
+             pass
+        
+        return {"status": "success", "message": _("Code updated. {0}").format(restart_status)}
         
     except subprocess.CalledProcessError as e:
         frappe.log_error(f"Git Update Error: {e.output}", "Attendance Matrix Update")

@@ -86,6 +86,12 @@ Khi bạn muốn ra mắt tính năng mới cho khách hàng:
     *   Bấm Badge -> Thấy nội dung bạn vừa viết trong `CHANGELOG.md`.
     *   Bấm "Cập nhật" -> App tự tải code mới về.
 
+> [!IMPORTANT]
+> **Lưu ý về Cập nhật:**
+> *   **Javascript/HTML/CSS**: Thường có hiệu lực ngay sau khi khách hàng reload trình duyệt (Ctrl + Shift + R).
+> *   **Python (Backend)**: Code Python được Server load vào RAM khi khởi động. Do đó, nếu bản cập nhật có sửa file `.py`, khách hàng **cần phải khởi động lại Server** (hoặc chờ hệ thống tự reload nếu có cơ chế supervisor) để code mới có hiệu lực.
+> *   **Database**: Nếu có thay đổi cấu trúc bảng, lệnh `bench migrate` (được chạy tự động trong `perform_update`) sẽ xử lý việc này.
+
 ---
 
 ## 5. Security Note
