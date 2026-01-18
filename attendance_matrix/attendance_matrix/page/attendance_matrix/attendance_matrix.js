@@ -129,7 +129,14 @@ class AttendanceMatrixWrapper {
                         method: "attendance_matrix.attendance_matrix.utils.updates.check_for_updates",
                         callback: (r) => {
                             if (r.message) {
-                                this.appVersion = r.message.local_version;
+                                // Smart Version Display
+                                let ver = r.message.local_version || "";
+                                // If it looks like a hash (no 'v'), add 'v'. If it has 'v', keep it.
+                                if (ver && !ver.startsWith('v') && !ver.startsWith('V')) {
+                                    ver = 'v' + ver;
+                                }
+                                this.appVersion = ver;
+
                                 if (r.message.update_available) {
                                     this.updateAvailable = true;
                                     if (isInteractive) {
@@ -138,7 +145,7 @@ class AttendanceMatrixWrapper {
                                 } else {
                                     this.updateAvailable = false;
                                     if (isInteractive) {
-                                        frappe.msgprint(`Bạn đang dùng phiên bản mới nhất (v${this.appVersion})`);
+                                        frappe.msgprint(`Bạn đang dùng phiên bản mới nhất (${this.appVersion})`);
                                     }
                                 }
                             }
@@ -154,8 +161,8 @@ class AttendanceMatrixWrapper {
                                 fieldname: 'details',
                                 options: `
                                     <div class="text-center mb-3">
-                                        <h3 class="text-primary mb-1">v${info.remote_version}</h3>
-                                        <p class="text-muted small">Phiên bản hiện tại: v${info.local_version}</p>
+                                        <h3 class="text-primary mb-1">${info.remote_version}</h3>
+                                        <p class="text-muted small">Phiên bản hiện tại: ${info.local_version}</p>
                                     </div>
                                     <div class="alert alert-warning small">
                                         Tính năng mới / Thay đổi:
@@ -328,7 +335,7 @@ class AttendanceMatrixWrapper {
                              <div v-if="appVersion" class="d-flex align-items-center gap-1 cursor-pointer" @click="checkUpdates(true)" title="Click to check for updates">
                                  <span class="badge text-uppercase tracking-wider shadow-sm" 
                                        :class="updateAvailable ? 'bg-danger text-white' : 'bg-light text-muted border'">
-                                     v{{ appVersion }} <i v-if="updateAvailable" class="fa fa-exclamation-circle ms-1"></i>
+                                     {{ appVersion }} <i v-if="updateAvailable" class="fa fa-exclamation-circle ms-1"></i>
                                  </span>
                              </div>
                          </div>
