@@ -2,9 +2,14 @@ import frappe
 from frappe import _
 import json
 from frappe.utils import getdate, nowdate, add_days, get_first_day, get_last_day, date_diff
+# Import License Validator
+from attendance_matrix.license import validate_license_hook
 
 @frappe.whitelist()
 def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None):
+    # SECURITY: Enforce License Check (Cannot be bypassed by disabling hooks)
+    validate_license_hook()
+
     # Ensure Custom Field for Dual Status exists
     make_custom_fields()
 
@@ -118,8 +123,10 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     }
 
 @frappe.whitelist()
-@frappe.whitelist()
 def save_matrix_bulk(data):
+    # SECURITY: Enforce License Check
+    validate_license_hook()
+
     """
     data = [
         { "employee": "EMP01", "date": "2026-01-01", "status": "..." }, # status here is the custom matrix status
@@ -212,6 +219,9 @@ def save_matrix_bulk(data):
 
 @frappe.whitelist()
 def export_attendance_excel(month=None, year=None, department=None, company=None, employee=None, shift=None):
+    # SECURITY: Enforce License Check
+    validate_license_hook()
+
     import openpyxl
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     from frappe.utils import getdate
@@ -573,6 +583,9 @@ def save_attendance_settings(status_map, shift_map):
 
 @frappe.whitelist()
 def set_employee_shift(employee, shift_name):
+    # SECURITY: Enforce License Check (Optional here but good hygiene)
+    validate_license_hook()
+
     # 1. Check if Shift Type exists
     if not frappe.db.exists("Shift Type", shift_name):
         # 2. Try to find definition in Settings
