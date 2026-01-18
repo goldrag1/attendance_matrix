@@ -6,7 +6,7 @@ Excel-like Attendance Management for ERPNext v15.
 
 ### 1. Get the App
 ```bash
-bench get-app https://github.com/goldrag1/erpnext_attendance_matrix
+bench get-app https://github.com/goldrag1/attendance_matrix
 ```
 
 ### 2. Install on Site
