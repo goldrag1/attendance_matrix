@@ -13,6 +13,9 @@ def check_for_updates():
     # Go up one level to the app directory (folder containing setup.py)
     repo_dir = os.path.dirname(app_path)
     
+    frappe.log_error(f"DEBUG UPDATE: app_path={app_path}, repo_dir={repo_dir}", "Update Debug")
+    print(f"DEBUG UPDATE: app_path={app_path}, repo_dir={repo_dir}")
+
     # Ensure it's a git repo
     setup_git_if_needed(repo_dir)
     
