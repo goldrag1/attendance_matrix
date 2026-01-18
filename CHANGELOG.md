@@ -1,3 +1,6 @@
+## v1.5.5
+- **Optimization**: Giảm thời gian Cache khi Check License thất bại xuống còn 1 giờ (thay vì 24h). Giúp client cập nhật trạng thái nhanh hơn nếu mới mua License.
+
 ## v1.5.4
 - **Security Fix**: Giới hạn phạm vi kiểm tra License. Chỉ chặn truy cập khi vào "Attendance Matrix", không khóa toàn bộ ERPNext.
 
