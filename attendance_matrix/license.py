@@ -83,20 +83,25 @@ def check_remote_license():
                     return False, f"Status: {status}"
             return None, None
 
-        # 1. Try with FULL arguments (including version)
+        # 1. Try with FULL arguments (including version) using FORM DATA (more robust)
+        # Also disable 'Expect' header to prevent 417 loops
+        custom_headers = {"Expect": ""}
+        
         try:
             payload = {
                 "domain": site_domain,
                 "app_name": "attendance_matrix",
                 "version": version
             }
-            response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", json=payload, timeout=10)
+            # Use data=payload (Form Data) instead of json=payload to avoid JSON parsing strictness/headers
+            response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", data=payload, headers=custom_headers, timeout=10)
             
-            # If 417 (Expectation Failed) or 500ish, it might be argument mismatch. Retry without version.
+            # If 417 (Expectation Failed) or 500ish.
             if response.status_code == 417 or response.status_code >= 500:
                  # Retry LOWEST common denominator (just domain and app_name)
-                 del payload["version"]
-                 response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", json=payload, timeout=10)
+                 if "version" in payload:
+                    del payload["version"]
+                 response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", data=payload, headers=custom_headers, timeout=10)
 
             success, reason = parse_response(response)
             if success is not None:
@@ -107,10 +112,10 @@ def check_remote_license():
 
         # 2. Try LEGACY path (if nested path failed 404)
         if response.status_code == 404:
-             response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", json={
+             response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", data={
                 "domain": site_domain,
                 "app_name": "attendance_matrix"
-            }, timeout=10)
+            }, headers=custom_headers, timeout=10)
              
              success, reason = parse_response(response)
              if success is not None:

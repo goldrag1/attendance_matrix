@@ -1,3 +1,6 @@
+## v1.5.10
+- **Network Fix**: Chuyển đổi phương thức gửi dữ liệu License sang Form Data (thay vì JSON) và vô hiệu hóa Header "Expect" để tránh lỗi HTTP 417 trên một số Server Proxy/Nginx cấu hình chặt chẽ.
+
 ## v1.5.9
 - **Compatibility**: Tự động xử lý lỗi HTTP 417. Nếu Server License chưa cập nhật kịp, Client sẽ tự động chuyển sang chế độ tương thích (không gửi thông tin version) để đảm bảo kết nối luôn thông suốt.
 
