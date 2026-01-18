@@ -24,10 +24,15 @@ def check_for_updates():
         return {"error": "Git chưa được cài đặt trên server. Vui lòng cài đặt Git để sử dụng tính năng cập nhật."}
 
     try:
-        # Fetch remote (include tags for versioning, deeper history)
-        subprocess.check_output(["git", "fetch", "--tags", "--force", "--depth=100"], cwd=repo_dir, stderr=subprocess.STDOUT)
-        subprocess.check_output(["git", "fetch", "origin", "main", "--depth=100"], cwd=repo_dir, stderr=subprocess.STDOUT)
+        # 1. Fetch History (Shallow but deep enough)
+        subprocess.check_output(["git", "fetch", "origin", "main", "--depth=100", "--force"], cwd=repo_dir, stderr=subprocess.STDOUT)
         
+        # 2. Fetch Tags (Explicitly)
+        try:
+             subprocess.check_output(["git", "fetch", "--tags", "--force"], cwd=repo_dir, stderr=subprocess.STDOUT)
+        except:
+             pass
+
         # Check commit diff
         local_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_dir).strip().decode('utf-8')
         remote_hash = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=repo_dir).strip().decode('utf-8')
