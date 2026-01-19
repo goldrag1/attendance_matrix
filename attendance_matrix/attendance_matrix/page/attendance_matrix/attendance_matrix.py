@@ -132,17 +132,24 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
         }
 
     # 4. Fetch Meta for Filters
-    companies = frappe.get_all("Company", fields=["name"], order_by="name asc")
-    all_departments = frappe.get_all("Department", fields=["name"], order_by="name asc")
+    all_companies = frappe.get_all("Company", fields=["name"], order_by="name asc")
+    all_departments = frappe.get_all("Department", fields=["name", "company"], order_by="name asc")
     fiscal_years = frappe.get_all("Fiscal Year", fields=["name"], order_by="year_start_date desc")
 
-    # Filter departments based on user permission
+    # Filter departments and companies based on user permission
     if permitted_depts is not None:
         # User has restrictions - only show permitted departments
         filtered_departments = [d.name for d in all_departments if d.name in permitted_depts]
+        # Get companies that contain permitted departments
+        permitted_companies = set(d.company for d in all_departments if d.name in permitted_depts and d.company)
+        filtered_companies = [c.name for c in all_companies if c.name in permitted_companies]
+        # Get employee names for autocomplete (already filtered in employees list)
+        employee_options = [{"value": e["name"], "label": f"{e['employee_name']} ({e['name']})"} for e in employees]
     else:
-        # User has full access - show all departments
+        # User has full access - show all
         filtered_departments = [d.name for d in all_departments]
+        filtered_companies = [c.name for c in all_companies]
+        employee_options = []  # Empty = use search mode instead of dropdown
 
     # Get user permission info for display (use same logic as get_permitted_departments)
     user_roles = frappe.get_roles(frappe.session.user)
@@ -163,9 +170,10 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
             "last_day": str(last_day),
             "days_in_month": date_diff(last_day, first_day) + 1,
             "filter_options": {
-                "companies": [c.name for c in companies],
+                "companies": filtered_companies,
                 "departments": filtered_departments,
-                "fiscal_years": [f.name for f in fiscal_years]
+                "fiscal_years": [f.name for f in fiscal_years],
+                "employees": employee_options
             }
         },
         "settings": {

@@ -1,3 +1,7 @@
+## v1.6.6
+- **Permission**: Dropdown Công ty giờ chỉ hiển thị công ty có phòng ban được phép.
+- **Permission**: Danh sách nhân viên cho tìm kiếm cũng được lọc theo phòng ban được phép.
+
 ## v1.6.5
 - **Fix**: Badge phân quyền giờ hiển thị đúng tên phòng ban thay vì "Tất cả các phòng ban".
 - **Fix**: Dropdown Phòng ban giờ chỉ hiển thị các phòng ban mà người dùng được phép.
