@@ -1,3 +1,7 @@
+## v1.6.5
+- **Fix**: Badge phân quyền giờ hiển thị đúng tên phòng ban thay vì "Tất cả các phòng ban".
+- **Fix**: Dropdown Phòng ban giờ chỉ hiển thị các phòng ban mà người dùng được phép.
+
 ## v1.6.4
 - **Permission Change**: Chỉ System Manager và HR Manager có toàn quyền. HR User giờ phải dùng User Permission theo Department để giới hạn phạm vi xem.
 
