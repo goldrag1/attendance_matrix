@@ -304,7 +304,8 @@ class AttendanceMatrixWrapper {
                         department: filters.department || "",
                         company: filters.company || "",
                         employee: filters.employee || "",
-                        shift: filters.shift || ""
+                        shift: filters.shift || "",
+                        abbreviation_mode: this.store.showAbbreviations ? 1 : 0
                     }).toString();
                     const url = `/api/method/attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.export_attendance_excel?${params}`;
                     window.open(url, '_blank');
@@ -385,6 +386,11 @@ class AttendanceMatrixWrapper {
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showShifts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('default_shift', this.checked)">
                                                 <label class="custom-control-label" for="showShifts">{{ __('Default Shift') }}</label>
+                                            </div>
+                                            <div class="dropdown-divider"></div>
+                                            <div class="custom-control custom-checkbox">
+                                                <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="if(window.attendanceGridApi) window.attendanceGridApi.redrawRows()">
+                                                <label class="custom-control-label" for="showAbbr">{{ __('Hiển thị viết tắt') }}</label>
                                             </div>
                                         </div>
                                     </div>

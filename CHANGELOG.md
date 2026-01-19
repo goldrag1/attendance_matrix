@@ -1,3 +1,10 @@
+## v1.7.0
+- **Feature**: Bổ sung chế độ "Hiển thị viết tắt" (Toggle):
+    - Khi BẬT: Các ô chấm công hiển thị mã viết tắt (VD: 1, 1/2) thay vì tên đầy đủ. Áp dụng cho cả giao diện và xuất Excel.
+    - Khi TẮT: Hiển thị tên đầy đủ như cũ.
+- **UX**: Cột tổng hợp cuối bảng giờ hiển thị Tên đầy đủ của trạng thái thay vì viết tắt.
+- **System**: Đổi tên file thư viện `ag-grid.css` thành `ag-grid-custom.css` để khắc phục lỗi phân quyền.
+
 ## v1.6.10
 - **System**: Đổi tên file thư viện `ag-grid.css` thành `ag-grid-custom.css` để khắc phục triệt để lỗi phân quyền (Permission Denied) khi update trên các máy chủ mà file cũ bị chiếm quyền bởi root.
 - **System**: Loại bỏ các file css cũ khỏi code nguồn.

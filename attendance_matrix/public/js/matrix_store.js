@@ -25,7 +25,8 @@ export default {
         permission_info: null, // User's department permission info
         loading: false,
         saving: false,
-        dirty: new Set() // Track changed employees
+        dirty: new Set(), // Track changed employees
+        showAbbreviations: true // Toggle for Abbreviation Mode
     }),
 
     async init() {

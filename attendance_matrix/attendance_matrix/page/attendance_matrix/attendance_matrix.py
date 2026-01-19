@@ -306,9 +306,11 @@ def save_matrix_bulk(data):
     return results
 
 @frappe.whitelist()
-def export_attendance_excel(month=None, year=None, department=None, company=None, employee=None, shift=None):
+def export_attendance_excel(month=None, year=None, department=None, company=None, employee=None, shift=None, abbreviation_mode=0):
     # SECURITY: Enforce License Check
     validate_license_hook()
+
+    abbreviation_mode = int(abbreviation_mode)
 
     import openpyxl
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
@@ -323,11 +325,10 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
     settings = frappe.get_single("Attendance Matrix Settings")
     
     # Map for Colors: Status -> Color
-    status_color_map = {}
+    # Also Map for Abbreviation if needed
+    status_config_map = {} # Status -> {abbr, color}
     for s in settings.status_map:
-        if s.color:
-            status_color_map[s.status] = s.color
-            status_color_map[s.abbreviation] = s.color
+        status_config_map[s.status] = {"abbr": s.abbreviation, "color": s.color}
 
     # Map for Summaries: Status -> Index in summary array
     # We want columns for each configured status
@@ -414,27 +415,29 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
             key = f"{emp.name}_{date_str}"
             
             cell_data = data_map.get(key, {})
-            val = cell_data.get('status', '') # This is the Display Status (could be Abbr or Full Name)
+            val = cell_data.get('status', '') # This is the Display Status (Full Name)
             
-            row.append(val)
-            
-            # Count Logic
-            # We need to match val (which could be Abbreviation) to the Status Name in configured_statuses
-            # Or if val matches Status Name directly
+            # Count Logic (Before converting val to abbr)
             if val:
                 # Find matching config
                 # Check exact match first
                 if val in status_counts:
                     status_counts[val] += 1
                 else:
-                    # Check abbreviations
-                    found = False
+                    # Check abbreviations (shouldn't happen if standardized but safe to keep)
                     for s in settings.status_map:
                         if s.abbreviation == val:
                             if s.status in status_counts:
                                 status_counts[s.status] += 1
-                                found = True
                             break
+
+            # ABBREVIATION MODE CHECK
+            display_val = val
+            if abbreviation_mode == 1 and val:
+                 if val in status_config_map and status_config_map[val]["abbr"]:
+                     display_val = status_config_map[val]["abbr"]
+            
+            row.append(display_val)
         
         # Summary Values
         for s in configured_statuses:

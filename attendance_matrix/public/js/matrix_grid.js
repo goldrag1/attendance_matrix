@@ -217,8 +217,22 @@ export default {
                 },
                 editable: true,
                 cellRenderer: params => {
-                    // Center content
-                    return params.value || "";
+                    const val = params.value;
+                    if (!val) return "";
+
+                    // Check Abbreviation Mode
+                    if (store.state.showAbbreviations) {
+                        const settings = store.state.settings.status_map || [];
+                        const config = settings.find(s => s.status === val || s.abbreviation === val);
+                        // If current value is Full Status, try to return Abbr. 
+                        // If current value is Abbr, return it.
+                        // Actually val from DB is always expected to be Full Status (or what was saved).
+                        // logic: find config where status == val. If found, return abbr.
+                        if (config && config.status === val && config.abbreviation) {
+                            return config.abbreviation;
+                        }
+                    }
+                    return val;
                 },
                 valueGetter: (params) => {
                     const key = `${params.data.name}_${dateStr}`;
@@ -260,33 +274,29 @@ export default {
         const statusMap = store.state.settings.status_map || [];
 
         // Dictionary to group if needed. Here we just take unique abbreviations.
-        // Actually, user might define multiple rows with same abbrev (bad config) but efficient to handle unique.
-        const uniqueStatuses = [...new Set(statusMap.map(s => s.abbreviation).filter(Boolean))];
+        const uniqueStatuses = [...new Set(statusMap.map(s => s.status).filter(Boolean))]; // CHANGED: Map STATUS not Abbr
 
-        // Also include standard ones if settings empty? 
-        // No, if settings empty, show nothing or defaults. 
         if (uniqueStatuses.length === 0) {
             // Fallback Defaults
-            ['P', 'P/2', 'KP', 'Phep'].forEach(abbr => {
+            ['Present', 'Half Day', 'On Leave', 'Absent'].forEach(status => {
                 cols.push({
-                    headerName: abbr,
-                    width: 60,
-                    valueGetter: p => this.countStatus(p.data.name, [abbr]),
+                    headerName: status,
+                    width: 70,
+                    valueGetter: p => this.countStatus(p.data.name, [status]),
                     cellStyle: { 'background-color': '#ffffcc', 'text-align': 'center', 'font-weight': 'bold' }
                 });
             });
         } else {
-            uniqueStatuses.forEach(abbr => {
+            uniqueStatuses.forEach(status => {
                 // Find config for color/name
-                const config = statusMap.find(s => s.abbreviation === abbr);
-                const targetStatus = config ? config.status : abbr;
+                const config = statusMap.find(s => s.status === status);
+                const abbr = config ? config.abbreviation : status;
+
                 cols.push({
-                    headerName: abbr,
-                    headerTooltip: config ? config.status : abbr,
-                    width: 60,
-                    valueGetter: p => this.countStatus(p.data.name, [targetStatus]),
-                    // Use config color for summary header/cell or keep yellow?
-                    // Let's use the configured color but lighter? Or just the same color.
+                    headerName: status, // REQUIREMENT: Full Status Name in Header
+                    headerTooltip: `${status} (${abbr})`,
+                    width: 70,
+                    valueGetter: p => this.countStatus(p.data.name, [status]),
                     cellStyle: {
                         'background-color': (config && config.color) ? config.color : '#ffffcc',
                         'text-align': 'center',
