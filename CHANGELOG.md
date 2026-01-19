@@ -1,3 +1,6 @@
+## v1.7.3
+- **i18n**: Bổ sung dịch tiếng Việt cho checkbox "Chỉ hiện nhân viên đang làm việc".
+
 ## v1.7.2
 - **Feature**: Bổ sung bộ lọc "Chỉ hiện nhân viên đang làm việc" (Mặc định: Bật).
     - Khi BẬT: Chỉ hiển thị nhân viên có trạng thái Active.
