@@ -477,9 +477,16 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
             fill = None
             
             # P1: Status Color
-            if val:
-                hex_color = status_color_map.get(val)
-                if hex_color:
+            # P1: Status Color
+            date_str = col_info['date']
+            key = f"{emp.name}_{date_str}"
+            cell_data = data_map.get(key, {})
+            original_status = cell_data.get('status') # This is the Full Name / Custom Status
+
+            if original_status:
+                config = status_config_map.get(original_status)
+                if config and config.get("color"):
+                    hex_color = config["color"]
                     hex_clean = hex_color.replace("#", "")
                     if len(hex_clean) == 6:
                         fill = PatternFill(start_color=hex_clean.upper(), end_color=hex_clean.upper(), fill_type="solid")
@@ -499,6 +506,23 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
             
             if fill:
                 cell.fill = fill
+
+        # Specific Styling for Summary Columns
+        start_summary_col_idx = 5 + len(date_cols)
+        for i, status_label in enumerate(configured_statuses):
+            col_idx = start_summary_col_idx + i
+            cell = ws.cell(row=row_idx, column=col_idx)
+            
+            config = status_config_map.get(status_label)
+            if config and config.get("color"):
+                hex_color = config["color"]
+                hex_clean = hex_color.replace("#", "")
+                if len(hex_clean) == 6:
+                    # Use slightly lighter opacity or just same color? 
+                    # UI uses same color. Let's use same color but ensure text is readable if needed.
+                    # For now, simple solid fill.
+                    summary_fill = PatternFill(start_color=hex_clean.upper(), end_color=hex_clean.upper(), fill_type="solid")
+                    cell.fill = summary_fill
 
     # --- HEADER STYLING & FORMATTING ---
     # We do this last or first, doesn't matter much, but let's do it cleanly

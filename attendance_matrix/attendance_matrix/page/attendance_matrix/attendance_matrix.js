@@ -329,6 +329,16 @@ class AttendanceMatrixWrapper {
                         document.exitFullscreen();
                         el.classList.remove('bg-white');
                     }
+                },
+                toggleColumn(colId, event) {
+                    if (window.attendanceGridApi) {
+                        window.attendanceGridApi.setColumnVisible(colId, event.target.checked);
+                    }
+                },
+                redrawGrid() {
+                    if (window.attendanceGridApi) {
+                        window.attendanceGridApi.redrawRows();
+                    }
                 }
             },
             template: `
@@ -376,15 +386,15 @@ class AttendanceMatrixWrapper {
                                         <h6 class="dropdown-header text-uppercase small font-weight-bold">{{ __('Display Columns') }}</h6>
                                         <div class="dropdown-item px-2 rounded">
                                             <div class="custom-control custom-checkbox">
-                                                <input class="custom-control-input" type="checkbox" id="showIds" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('name', this.checked)">
+                                                <input class="custom-control-input" type="checkbox" id="showIds" checked @change="toggleColumn('name', $event)">
                                                 <label class="custom-control-label" for="showIds">{{ __('Employee ID') }}</label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
-                                                <input class="custom-control-input" type="checkbox" id="showDepts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('department', this.checked)">
+                                                <input class="custom-control-input" type="checkbox" id="showDepts" checked @change="toggleColumn('department', $event)">
                                                 <label class="custom-control-label" for="showDepts">{{ __('Department') }}</label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
-                                                <input class="custom-control-input" type="checkbox" id="showShifts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('default_shift', this.checked)">
+                                                <input class="custom-control-input" type="checkbox" id="showShifts" checked @change="toggleColumn('default_shift', $event)">
                                                 <label class="custom-control-label" for="showShifts">{{ __('Default Shift') }}</label>
                                             </div>
                                             <div class="custom-control custom-checkbox">
@@ -393,7 +403,7 @@ class AttendanceMatrixWrapper {
                                             </div>
                                             <div class="dropdown-divider"></div>
                                             <div class="custom-control custom-checkbox">
-                                                <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="window.attendanceGridApi && window.attendanceGridApi.redrawRows()">
+                                                <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="redrawGrid">
                                                 <label class="custom-control-label" for="showAbbr">{{ __('Show Abbreviations') }}</label>
                                             </div>
                                         </div>

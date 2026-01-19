@@ -1,3 +1,8 @@
+## v1.7.5
+- **Fix**: Sửa lỗi 500 khi xuất Excel (do thiếu cấu hình màu).
+- **Fix**: Sửa lỗi JavaScript khi bật tắt cột hiển thị.
+- **Feature**: Bổ sung màu nền cho các cột tổng hợp trong file Excel (đồng bộ với giao diện).
+
 ## v1.7.4
 - **i18n**: Chuẩn hóa ngôn ngữ UI (Show Abbreviations, Fullscreen, Reset Filters) sang tiếng Anh làm gốc và bổ sung bản dịch tiếng Việt tương ứng.
 
