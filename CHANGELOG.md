@@ -1,3 +1,6 @@
+## v1.6.8
+- **UX**: Popup lỗi giờ hiển thị chi tiết đầy đủ (Nhân viên, Ngày, Lỗi) thay vì chỉ nói "xem console".
+
 ## v1.6.7
 - **UX**: Khi nhập trạng thái không hợp lệ, hiển thị thông báo rõ ràng liệt kê các giá trị hợp lệ thay vì lỗi quyền truy cập khó hiểu.
 

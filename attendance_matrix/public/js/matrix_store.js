@@ -129,7 +129,16 @@ export default {
             });
 
             if (r.message && r.message.errors && r.message.errors.length > 0) {
-                frappe.msgprint(`Lưu thất bại ${r.message.errors.length} dòng. Xem console.`);
+                // Build detailed error message
+                let errorDetails = r.message.errors.map(e =>
+                    `<li><strong>${e.employee}</strong> (${e.date}): ${e.error}</li>`
+                ).join("");
+
+                frappe.msgprint({
+                    title: __("Lưu thất bại"),
+                    indicator: "red",
+                    message: `<p>Không thể lưu ${r.message.errors.length} dòng:</p><ul>${errorDetails}</ul>`
+                });
                 console.error(r.message.errors);
             } else {
                 frappe.show_alert("Đã lưu thành công", 5);
