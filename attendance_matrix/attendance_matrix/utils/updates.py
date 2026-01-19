@@ -142,9 +142,25 @@ def perform_update():
         # Run bench build to rebuild JS/CSS assets
         build_status = ""
         try:
+            # Resolve bench command
+            bench_cmd = "bench"
+            possible_paths = [
+                os.path.join(bench_dir, "env", "bin", "bench"), # Linux
+                os.path.join(bench_dir, "env", "Scripts", "bench") # Windows
+            ]
+            for p in possible_paths:
+                if os.path.exists(p):
+                    bench_cmd = p
+                    break
+            
+            # Check if shutil.which finds it if we didn't find absolute path
+            if bench_cmd == "bench" and not shutil.which("bench"):
+                 # Determine fallback based on OS if possible, or just warn
+                 pass
+
             # Adding --force to be sure
             result = subprocess.run(
-                ["bench", "build", "--app", "attendance_matrix", "--force"],
+                [bench_cmd, "build", "--app", "attendance_matrix", "--force"],
                 cwd=bench_dir,
                 capture_output=True,
                 text=True,

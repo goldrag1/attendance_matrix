@@ -1,3 +1,6 @@
+## v1.7.6
+- **System**: Cải thiện logic tìm kiếm lệnh `bench` khi cập nhật. Hệ thống sẽ tự động tìm trong thư mục `env` của dự án nếu không tìm thấy trong biến môi trường (Khắc phục lỗi "Asset build skipped" trên một số server).
+
 ## v1.7.5
 - **Fix**: Sửa lỗi 500 khi xuất Excel (do thiếu cấu hình màu).
 - **Fix**: Sửa lỗi JavaScript khi bật tắt cột hiển thị.

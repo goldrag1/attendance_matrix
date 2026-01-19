@@ -35,5 +35,5 @@ node_modules/
 # Excludes
 .agent/
 .beads/
-agents.md
+AGENTS.md
 docs/
