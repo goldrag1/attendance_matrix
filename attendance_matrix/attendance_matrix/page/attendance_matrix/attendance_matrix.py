@@ -8,11 +8,12 @@ from attendance_matrix.license import validate_license_hook
 def get_permitted_departments():
     """
     Returns list of department names the current user has access to.
-    Returns None if user has full access (HR Manager, System Manager, or no restrictions).
+    Returns None if user has full access (System Manager, HR Manager only).
+    HR User and other roles must use Department User Permission.
     """
-    # Check if user has full access via Role
+    # Check if user has full access via Role (Only System Manager and HR Manager)
     user_roles = frappe.get_roles(frappe.session.user)
-    if any(role in user_roles for role in ["System Manager", "HR Manager", "HR User"]):
+    if any(role in user_roles for role in ["System Manager", "HR Manager"]):
         return None  # Full access
     
     # Get departments from User Permission

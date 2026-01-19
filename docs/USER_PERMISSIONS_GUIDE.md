@@ -14,7 +14,7 @@ The Attendance Matrix app supports **department-based permissions** using ERPNex
 |----------------|-------------------------|
 | **System Manager** | Full access to all employees / Toàn quyền truy cập |
 | **HR Manager** | Full access to all employees / Toàn quyền truy cập |
-| **HR User** | Full access to all employees / Toàn quyền truy cập |
+| **HR User** | Only employees in permitted departments / Chỉ nhân viên trong phòng ban được phép |
 | **Other Users** | Only employees in permitted departments / Chỉ nhân viên trong phòng ban được phép |
 
 ---

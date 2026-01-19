@@ -1,3 +1,6 @@
+## v1.6.4
+- **Permission Change**: Chỉ System Manager và HR Manager có toàn quyền. HR User giờ phải dùng User Permission theo Department để giới hạn phạm vi xem.
+
 ## v1.6.3
 - **Permission Fix**: Thêm role "All" vào Page Permission, cho phép tất cả người dùng đã đăng nhập có thể mở trang Attendance Matrix (phân quyền Department vẫn hoạt động bình thường).
 - **UI**: Đổi badge phân quyền sang màu hồng nhẹ nhàng.
