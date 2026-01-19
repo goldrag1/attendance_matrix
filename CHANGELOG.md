@@ -1,3 +1,6 @@
+## v1.5.13
+- **Critical Fix**: Sửa đường dẫn API License từ `licence_manager.licence_manager.api` thành `licence_manager.api` (Đây là nguyên nhân gốc gây ra lỗi HTTP 417).
+
 ## v1.5.12
 - **Major Fix**: Thay thế hoàn toàn thư viện `requests` bằng `urllib` (Built-in Python). Đảm bảo tương thích với mọi cấu hình Server/Proxy mà không phụ thuộc vào thư viện bên thứ 3.
 

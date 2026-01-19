@@ -81,9 +81,8 @@ def check_remote_license():
         
         query_string = urlencode(params)
         
-        # API paths to try
+        # API paths to try (primary path first)
         api_paths = [
-            f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain?{query_string}",
             f"{server_url}/api/method/licence_manager.api.validate_domain?{query_string}"
         ]
         
