@@ -1,3 +1,7 @@
+## v1.6.9
+- **System**: Cải thiện thuật toán Autoupdate - tải code theo commit SHA mới nhất để tránh cache của GitHub (đảm bảo code luôn mới nhất thay vì bị trễ vài tiếng).
+- **System**: Tăng thời gian chờ và bắt buộc chạy lệnh `bench build` khi update.
+
 ## v1.6.8
 - **UX**: Popup lỗi giờ hiển thị chi tiết đầy đủ (Nhân viên, Ngày, Lỗi) thay vì chỉ nói "xem console".
 

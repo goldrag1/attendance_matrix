@@ -82,30 +82,44 @@ def check_for_updates():
 @frappe.whitelist()
 def perform_update():
     """
-    Downloads Zip from GitHub, extracts and overwrites local files.
+    Downloads Zip from GitHub (specific commit), extracts and overwrites local files.
     """
     try:
         app_path = frappe.get_app_path("attendance_matrix")
         target_dir = os.path.dirname(app_path) # apps/attendance_matrix/
 
-        # 1. Download Zip
-        r = requests.get(ZIP_URL, stream=True, timeout=30)
+        # 1. Get Latest Commit SHA to bypass Cache
+        # GitHub 'archive/main.zip' is often cached. We need options/main or archive/{sha}.zip
+        # Using public API to get latest sha
+        commit_url = "https://api.github.com/repos/goldrag1/attendance_matrix/commits/main"
+        sha = "main" # Fallback
+        try:
+            c_res = requests.get(commit_url, timeout=5)
+            if c_res.status_code == 200:
+                sha = c_res.json().get("sha")
+            else:
+                frappe.log_error(f"Could not get commit SHA: {c_res.status_code}", "Update Debug")
+        except Exception as e:
+             frappe.log_error(f"Could not get commit SHA: {str(e)}", "Update Debug")
+        
+        zip_url = f"{GITHUB_URL}/archive/{sha}.zip"
+
+        # 2. Download Zip
+        r = requests.get(zip_url, stream=True, timeout=60)
         if r.status_code != 200:
              frappe.throw(_("Cannot download update file (Status: {0})").format(r.status_code))
 
-        # 2. Extract to Memory
+        # 3. Extract to Memory
         z = zipfile.ZipFile(io.BytesIO(r.content))
         
-        # Git Zip usually has a top folder 'attendance_matrix-main'
-        # We need to extract contents of that folder to 'target_dir'
-        
-        root_folder = z.namelist()[0].split('/')[0] # e.g., 'attendance_matrix-main'
+        # Git Zip structure: 'attendance_matrix-{sha}' (or 'attendance_matrix-main' if using main)
+        # We need to be dynamic about the root folder name
+        root_folder = z.namelist()[0].split('/')[0] 
         
         for file_info in z.infolist():
             if file_info.filename.endswith('/'): continue # Skip directories
             
             # Remove the top folder from path
-            # e.g. 'attendance_matrix-main/attendance_matrix/hooks.py' -> 'attendance_matrix/hooks.py'
             rel_path = file_info.filename[len(root_folder)+1:] 
             
             if not rel_path: continue
@@ -120,7 +134,7 @@ def perform_update():
             with open(dest_path, "wb") as f:
                 f.write(z.read(file_info))
 
-        # 3. Post Update Actions - Build assets and clear cache
+        # 4. Post Update Actions - Build assets and clear cache
         import subprocess
         
         bench_dir = os.path.dirname(os.path.dirname(target_dir))  # frappe-bench folder
@@ -128,12 +142,13 @@ def perform_update():
         # Run bench build to rebuild JS/CSS assets
         build_status = ""
         try:
+            # Adding --force to be sure
             result = subprocess.run(
-                ["bench", "build", "--app", "attendance_matrix"],
+                ["bench", "build", "--app", "attendance_matrix", "--force"],
                 cwd=bench_dir,
                 capture_output=True,
                 text=True,
-                timeout=120
+                timeout=300 # Increase timeout for build
             )
             if result.returncode == 0:
                 build_status = _("Assets built successfully.")
@@ -152,7 +167,7 @@ def perform_update():
         except:
              restart_status = _("Please restart server manually if backend errors occur.")
         
-        return {"status": "success", "message": _("Update successful! {0} Cache cleared. {1}").format(build_status, restart_status)}
+        return {"status": "success", "message": _("Update successful! (Commit: {0}) {1} Cache cleared. {2}").format(sha[:7], build_status, restart_status)}
 
     except Exception as e:
         frappe.log_error(f"Zip Update Error: {str(e)}", "Attendance Matrix Update")
