@@ -1,3 +1,9 @@
+## v1.7.2
+- **Feature**: Bổ sung bộ lọc "Chỉ hiện nhân viên đang làm việc" (Mặc định: Bật).
+    - Khi BẬT: Chỉ hiển thị nhân viên có trạng thái Active.
+    - Khi TẮT: Hiển thị tất cả nhân viên (bao gồm đã nghỉ việc, tạm nghỉ...), đồng thời hiển thị thêm cột "Status" trong bảng để phân biệt.
+- **UI**: Cập nhật menu "Show" (Hiển thị) gom nhóm các tùy chọn hiển thị cột và bộ lọc.
+
 ## v1.7.1
 - **Fix**: Sửa lỗi màn hình trắng khi tải trang (do lỗi cú pháp Vue template trong phần switch hiển thị viết tắt).
 - **Docs**: Cập nhật README thêm hướng dẫn sửa lỗi phân quyền (chown).
