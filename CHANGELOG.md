@@ -1,3 +1,6 @@
+## v1.5.12
+- **Major Fix**: Thay thế hoàn toàn thư viện `requests` bằng `urllib` (Built-in Python). Đảm bảo tương thích với mọi cấu hình Server/Proxy mà không phụ thuộc vào thư viện bên thứ 3.
+
 ## v1.5.11
 - **Critical Fix**: Chuyển hoàn toàn sang GET request để kiểm tra License. Loại bỏ triệt để lỗi HTTP 417 gây ra bởi `Expect` header và các cấu hình Proxy/Nginx chặt chẽ.
 

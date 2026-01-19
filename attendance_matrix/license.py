@@ -52,7 +52,7 @@ def check_remote_license():
     """
     Validates the license against the remote server.
     Returns (True, "OK") if Active, (False, "Reason") otherwise.
-    Uses GET request to avoid HTTP 417 (Expectation Failed) issues with proxies.
+    Uses GET request with urllib fallback to avoid HTTP 417 issues.
     """
     settings = frappe.get_single("Attendance Matrix Settings")
     server_url = getattr(settings, "license_server_url", None) or "https://erp.minionapp.fun"
@@ -70,8 +70,8 @@ def check_remote_license():
         except:
             pass
 
-        # Build URL with query parameters (GET request)
-        from urllib.parse import urlencode
+        # Build URL with query parameters
+        from urllib.parse import urlencode, quote
         params = {
             "domain": site_domain,
             "app_name": "attendance_matrix"
@@ -79,18 +79,46 @@ def check_remote_license():
         if version:
             params["version"] = version
         
-        # Try primary API path
-        api_url = f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain?{urlencode(params)}"
-        response = requests.get(api_url, timeout=15)
+        query_string = urlencode(params)
         
-        # If 404, try legacy path
-        if response.status_code == 404:
-            api_url = f"{server_url}/api/method/licence_manager.api.validate_domain?{urlencode(params)}"
-            response = requests.get(api_url, timeout=15)
+        # API paths to try
+        api_paths = [
+            f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain?{query_string}",
+            f"{server_url}/api/method/licence_manager.api.validate_domain?{query_string}"
+        ]
         
-        if response.status_code == 200:
-            result = response.json()
-            status = result.get("message", {}).get("status")
+        response_json = None
+        last_error = "Unknown"
+        
+        # Try using urllib (more reliable, no Expect header issues)
+        import urllib.request
+        import json
+        
+        for api_url in api_paths:
+            try:
+                req = urllib.request.Request(api_url, method='GET')
+                req.add_header('User-Agent', 'AttendanceMatrix/1.5.12')
+                req.add_header('Accept', 'application/json')
+                
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status == 200:
+                        response_json = json.loads(resp.read().decode('utf-8'))
+                        break
+            except urllib.error.HTTPError as e:
+                last_error = f"HTTP {e.code}"
+                if e.code == 404:
+                    continue  # Try next path
+                break
+            except urllib.error.URLError as e:
+                last_error = f"Network: {str(e.reason)}"
+                break
+            except Exception as e:
+                last_error = str(e)
+                break
+        
+        # Parse response
+        if response_json:
+            status = response_json.get("message", {}).get("status")
             if status == "Active":
                 frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
                 return True, "Active"
@@ -99,8 +127,8 @@ def check_remote_license():
                 frappe.log_error(f"License Status Denied: {status} for {site_domain}", "Attendance Matrix License")
                 return False, f"Status: {status}"
         else:
-            frappe.log_error(f"License Check Failed ({response.status_code}): {response.text}", "Attendance Matrix License")
-            return False, f"HTTP {response.status_code}"
+            frappe.log_error(f"License Check Failed: {last_error}", "Attendance Matrix License")
+            return False, last_error
 
     except Exception as e:
         frappe.log_error(f"License Check Error: {str(e)}", "Attendance Matrix License Error")
