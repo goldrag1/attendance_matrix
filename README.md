@@ -37,6 +37,40 @@ To ensure the **Auto-Update** feature works correctly without permission errors:
     *(**Truy cập nhanh**: Vào danh sách **Attendance** và bấm nút **"Chấm công nhanh"**)*.
 2.  **Direct Link**: Navigate to `/app/attendance-matrix` in your browser.
     *(**Link trực tiếp**: Truy cập đường dẫn `/app/attendance-matrix` trên trình duyệt)*.
+
+---
+
+## User Permissions / Phân quyền người dùng
+
+### Permission Levels / Các cấp độ quyền
+
+| Role / Vai trò | Access / Quyền truy cập |
+|----------------|-------------------------|
+| **System Manager** | Full access / Toàn quyền |
+| **HR Manager** | Full access / Toàn quyền |
+| **HR User** | Department-based / Theo phòng ban |
+| **Other Users** | Department-based / Theo phòng ban |
+
+### How to Set Up / Cách thiết lập
+
+1. Go to **Setup > User Permission**
+   *Vào **Thiết lập > User Permission***
+
+2. Add: **Allow = Department**, **For Value = [Department Name]**
+   *Thêm: **Cho phép = Department**, **Giá trị = [Tên phòng ban]***
+
+3. Save
+   *Lưu*
+
+### Notes / Lưu ý
+
+- Users with no Department User Permission will have **full access**
+  *Người dùng không có User Permission cho Department sẽ có **toàn quyền***
+- All dropdowns (Company, Department, Employee) are filtered by permission
+  *Tất cả dropdown đều được lọc theo quyền*
+
+---
+
 ## Troubleshooting / Khắc phục sự cố
 
 ### Issue: "AppNotInstalledError" or "TypeError" during install
@@ -67,3 +101,9 @@ pip3 install --upgrade frappe-bench
     ```bash
     bench --site [your-site-name] install-app attendance_matrix
     ```
+
+### Issue: "You don't have permission for this department"
+*(Lỗi: "Bạn không có quyền truy cập phòng ban này")*
+
+**Solution**: Add User Permission for the required Department.
+*(**Giải pháp**: Thêm User Permission cho Department cần thiết.)*
