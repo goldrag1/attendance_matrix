@@ -20,16 +20,20 @@ bench --site [your-site-name] install-app attendance_matrix
 bench migrate
 ```
 
-### 4. Important: Installation Best Practices / Lưu ý Quan trọng
-To ensure the **Auto-Update** feature works correctly without permission errors:
-*(Để tính năng **Tự động Cập nhật** hoạt động ổn định và không bị lỗi quyền hạn)*:
+### 4. Finalize Permissions / Hoàn tất phân quyền
+**(Important / Quan trọng)**
+To ensure the **Auto-Update** feature works correctly, you **MUST** set the correct file ownership for your bench.
+*(Để tính năng **Tự động Cập nhật** hoạt động ổn định, bạn **PHẢI** thiết lập đúng quyền sở hữu file cho bench của mình)*.
 
-1.  **NEVER** run `bench` commands as `root`.
-    *(**KHÔNG BAO GIỜ** chạy lệnh `bench` dưới quyền `root`)*.
-2.  **ALWAYS** login as `frappe` (or `frappeuser`) before running `bench get-app`.
-    *(**LUÔN LUÔN** đăng nhập bằng user `frappe` hoặc `frappeuser` trước khi chạy lệnh cài đặt)*.
-    - This ensures all files are owned by the correct user, allowing the app to update itself smoothly.
-    *(Điều này đảm bảo mọi file tải về thuộc quyền sở hữu đúng, giúp ứng dụng tự cập nhật mượt mà)*.
+Run this command after installation:
+*(Chạy lệnh sau sau khi cài đặt)*:
+```bash
+sudo chown -R frappeuser:frappeuser /home/frappeuser/frappe-bench
+```
+*(Note: Replace `frappeuser` with your actual system user if different. / Lưu ý: Thay `frappeuser` bằng user hệ thống thực tế của bạn nếu khác)*.
+
+> **Warning**: Never run `bench` commands as `root`. Always use the `frappe` system user.
+> *(**Cảnh báo**: Không bao giờ chạy lệnh `bench` dưới quyền `root`. Luôn sử dụng user hệ thống `frappe`)*.
 
 ## Usage / Hướng dẫn sử dụng
 
