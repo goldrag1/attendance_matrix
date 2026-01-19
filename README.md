@@ -107,3 +107,15 @@ pip3 install --upgrade frappe-bench
 
 **Solution**: Add User Permission for the required Department.
 *(**Giải pháp**: Thêm User Permission cho Department cần thiết.)*
+
+### Issue: "Permission Denied" during Auto-Update
+*(Lỗi: Không có quyền ghi đè file khi cập nhật tự động)*
+
+**Cause**: Some files might be owned by `root`, preventing `frappeuser` from updating them.
+*(**Nguyên nhân**: Một số file thuộc quyền `root`, khiến `frappeuser` không thể ghi đè)*
+
+**Solution**: Run the following command to fix permissions:
+*(**Giải pháp**: Chạy lệnh sau để sửa quyền)*
+```bash
+sudo chown -R frappeuser:frappeuser /home/frappeuser/frappe-bench
+```

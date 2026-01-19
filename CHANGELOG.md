@@ -1,5 +1,6 @@
 ## v1.7.1
 - **Fix**: Sửa lỗi màn hình trắng khi tải trang (do lỗi cú pháp Vue template trong phần switch hiển thị viết tắt).
+- **Docs**: Cập nhật README thêm hướng dẫn sửa lỗi phân quyền (chown).
 
 ## v1.7.0
 - **Feature**: Bổ sung chế độ "Hiển thị viết tắt" (Toggle):
