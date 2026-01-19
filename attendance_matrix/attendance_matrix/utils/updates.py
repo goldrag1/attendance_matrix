@@ -120,18 +120,39 @@ def perform_update():
             with open(dest_path, "wb") as f:
                 f.write(z.read(file_info))
 
-        # 3. Post Update Actions
+        # 3. Post Update Actions - Build assets and clear cache
+        import subprocess
+        
+        bench_dir = os.path.dirname(os.path.dirname(target_dir))  # frappe-bench folder
+        
+        # Run bench build to rebuild JS/CSS assets
+        build_status = ""
+        try:
+            result = subprocess.run(
+                ["bench", "build", "--app", "attendance_matrix"],
+                cwd=bench_dir,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            if result.returncode == 0:
+                build_status = _("Assets built successfully.")
+            else:
+                build_status = _("Asset build warning: {0}").format(result.stderr[:200] if result.stderr else "Unknown")
+        except Exception as e:
+            build_status = _("Asset build skipped: {0}").format(str(e))
+        
         frappe.clear_cache()
         
         restart_status = ""
         try:
              # Try restart if permissions allow
-             subprocess.Popen(["bench", "restart"], cwd=target_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+             subprocess.Popen(["bench", "restart"], cwd=bench_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
              restart_status = _("Server is restarting...")
         except:
              restart_status = _("Please restart server manually if backend errors occur.")
         
-        return {"status": "success", "message": _("Update successful! Cache cleared. {0}").format(restart_status)}
+        return {"status": "success", "message": _("Update successful! {0} Cache cleared. {1}").format(build_status, restart_status)}
 
     except Exception as e:
         frappe.log_error(f"Zip Update Error: {str(e)}", "Attendance Matrix Update")

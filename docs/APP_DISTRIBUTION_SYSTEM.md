@@ -55,7 +55,7 @@ Khi Client gọi API này, Server sẽ:
 File này quản lý việc tương tác với Git.
 *   **Chức năng:**
     *   `check_for_updates()`: So sánh git hash local (HEAD) với remote (origin/main). Đọc file `CHANGELOG.md` từ server.
-    *   `perform_update()`: Chạy lệnh `git pull` và `bench migrate`.
+    *   `perform_update()`: Chạy lệnh `git pull`, `bench build --app attendance_matrix` và `bench migrate`.
     *   **Tự động sửa lỗi Git:** Nếu thư mục app chưa là git repo (thường gặp khi cài thủ công), nó sẽ tự `git init` và add remote.
 
 ### 3.2. License Check (`license.py`)

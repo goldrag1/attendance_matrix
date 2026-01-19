@@ -1,3 +1,6 @@
+## v1.6.2
+- **Critical Fix**: Bổ sung lệnh `bench build` vào quy trình cập nhật tự động. Đảm bảo các file JS/CSS được rebuild đúng cách sau khi update.
+
 ## v1.6.1
 - **UI Enhancement**: Hiển thị badge phân quyền bên cạnh số lượng nhân viên (🔓 All Departments hoặc 🔒 Tên phòng ban). Giúp người dùng biết rõ quyền của mình.
 
