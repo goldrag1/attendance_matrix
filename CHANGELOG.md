@@ -1,3 +1,6 @@
+## v1.6.1
+- **UI Enhancement**: Hiển thị badge phân quyền bên cạnh số lượng nhân viên (🔓 All Departments hoặc 🔒 Tên phòng ban). Giúp người dùng biết rõ quyền của mình.
+
 ## v1.6.0
 - **New Feature**: Phân quyền theo Phòng ban (Department-based permissions). Người dùng chỉ có thể xem và chỉnh sửa chấm công cho nhân viên thuộc phòng ban mà họ được phép. Sử dụng User Permission của ERPNext.
 - **Documentation**: Thêm tài liệu hướng dẫn phân quyền song ngữ Anh-Việt (`docs/USER_PERMISSIONS_GUIDE.md`).

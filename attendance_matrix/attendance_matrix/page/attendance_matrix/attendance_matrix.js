@@ -464,10 +464,17 @@ class AttendanceMatrixWrapper {
                             </div>
                         </div>
 
-                        <!-- Right: Employee Count -->
+                        <!-- Right: Employee Count & Permission Info -->
                         <div class="d-flex align-items-center pt-4 flex-shrink-0 ms-3" v-if="store.employees.length > 0">
-                             <span class="small text-success fw-bold fst-italic">
+                             <span class="small text-success fw-bold fst-italic me-3">
                                 {{ __('Showing') }}: {{ store.employees.length }} {{ __('employees') }}
+                            </span>
+                            <!-- Permission Badge -->
+                            <span v-if="store.permission_info" class="badge" 
+                                  :class="store.permission_info.has_full_access ? 'bg-primary' : 'bg-warning text-dark'"
+                                  :title="store.permission_info.has_full_access ? 'Full Access' : 'Department Restricted'">
+                                <i :class="store.permission_info.has_full_access ? 'fa fa-unlock' : 'fa fa-lock'"></i>
+                                {{ store.permission_info.has_full_access ? __('All Departments') : (store.permission_info.permitted_departments ? store.permission_info.permitted_departments.join(', ') : __('All Departments')) }}
                             </span>
                         </div>
                     </div>

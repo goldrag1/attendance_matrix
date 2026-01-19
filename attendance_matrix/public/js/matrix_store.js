@@ -22,6 +22,7 @@ export default {
             status_map: [],
             shift_map: []
         },
+        permission_info: null, // User's department permission info
         loading: false,
         saving: false,
         dirty: new Set() // Track changed employees
@@ -68,6 +69,7 @@ export default {
             this.state.attendance = data.attendance || {};
             this.state.holidays = data.holidays || [];
             this.state.settings = data.settings || { status_map: [], shift_map: [] }; // settings
+            this.state.permission_info = data.permission_info || null; // Permission info
             this.state.employees = data.employees || []; // Set employees LAST to trigger update
             this.state.dirty.clear();
 

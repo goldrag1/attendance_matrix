@@ -135,6 +135,16 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     departments = frappe.get_all("Department", fields=["name"], order_by="name asc")
     fiscal_years = frappe.get_all("Fiscal Year", fields=["name"], order_by="year_start_date desc")
 
+    # Get user permission info for display
+    user_roles = frappe.get_roles(frappe.session.user)
+    has_full_access = any(role in user_roles for role in ["System Manager", "HR Manager", "HR User"])
+    
+    permission_info = {
+        "has_full_access": has_full_access,
+        "permitted_departments": permitted_depts if not has_full_access and permitted_depts else None,
+        "user_display": frappe.session.user
+    }
+
     return {
         "employees": employees,
         "attendance": attendance,
@@ -152,7 +162,8 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
         "settings": {
             "status_map": status_map,
             "shift_map": shift_map
-        }
+        },
+        "permission_info": permission_info
     }
 
 @frappe.whitelist()
