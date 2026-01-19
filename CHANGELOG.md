@@ -1,3 +1,6 @@
+## v1.5.11
+- **Critical Fix**: Chuyển hoàn toàn sang GET request để kiểm tra License. Loại bỏ triệt để lỗi HTTP 417 gây ra bởi `Expect` header và các cấu hình Proxy/Nginx chặt chẽ.
+
 ## v1.5.10
 - **Network Fix**: Chuyển đổi phương thức gửi dữ liệu License sang Form Data (thay vì JSON) và vô hiệu hóa Header "Expect" để tránh lỗi HTTP 417 trên một số Server Proxy/Nginx cấu hình chặt chẽ.
 

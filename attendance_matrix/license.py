@@ -52,6 +52,7 @@ def check_remote_license():
     """
     Validates the license against the remote server.
     Returns (True, "OK") if Active, (False, "Reason") otherwise.
+    Uses GET request to avoid HTTP 417 (Expectation Failed) issues with proxies.
     """
     settings = frappe.get_single("Attendance Matrix Settings")
     server_url = getattr(settings, "license_server_url", None) or "https://erp.minionapp.fun"
@@ -69,62 +70,37 @@ def check_remote_license():
         except:
             pass
 
-        # Helper to parse response
-        def parse_response(resp):
-            if resp.status_code == 200:
-                result = resp.json()
-                status = result.get("message", {}).get("status")
-                if status == "Active":
-                    frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
-                    return True, "Active"
-                else:
-                    frappe.cache().delete_value(LICENSE_CACHE_KEY)
-                    frappe.log_error(f"License Status Denied: {status} for {site_domain}", "Attendance Matrix License")
-                    return False, f"Status: {status}"
-            return None, None
-
-        # 1. Try with FULL arguments (including version) using FORM DATA (more robust)
-        # Also disable 'Expect' header to prevent 417 loops
-        custom_headers = {"Expect": ""}
+        # Build URL with query parameters (GET request)
+        from urllib.parse import urlencode
+        params = {
+            "domain": site_domain,
+            "app_name": "attendance_matrix"
+        }
+        if version:
+            params["version"] = version
         
-        try:
-            payload = {
-                "domain": site_domain,
-                "app_name": "attendance_matrix",
-                "version": version
-            }
-            # Use data=payload (Form Data) instead of json=payload to avoid JSON parsing strictness/headers
-            response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", data=payload, headers=custom_headers, timeout=10)
-            
-            # If 417 (Expectation Failed) or 500ish.
-            if response.status_code == 417 or response.status_code >= 500:
-                 # Retry LOWEST common denominator (just domain and app_name)
-                 if "version" in payload:
-                    del payload["version"]
-                 response = requests.post(f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain", data=payload, headers=custom_headers, timeout=10)
-
-            success, reason = parse_response(response)
-            if success is not None:
-                return success, reason
-
-        except Exception:
-            pass # Fallthrough explicitly to other paths or return error
-
-        # 2. Try LEGACY path (if nested path failed 404)
+        # Try primary API path
+        api_url = f"{server_url}/api/method/licence_manager.licence_manager.api.validate_domain?{urlencode(params)}"
+        response = requests.get(api_url, timeout=15)
+        
+        # If 404, try legacy path
         if response.status_code == 404:
-             response = requests.post(f"{server_url}/api/method/licence_manager.api.validate_domain", data={
-                "domain": site_domain,
-                "app_name": "attendance_matrix"
-            }, headers=custom_headers, timeout=10)
-             
-             success, reason = parse_response(response)
-             if success is not None:
-                return success, reason
-             
-             return False, f"Server API 404 (Path Not Found)"
+            api_url = f"{server_url}/api/method/licence_manager.api.validate_domain?{urlencode(params)}"
+            response = requests.get(api_url, timeout=15)
         
-        frappe.log_error(f"License Check Failed ({response.status_code}): {response.text}", "Attendance Matrix License")
-        return False, f"HTTP {response.status_code}"
+        if response.status_code == 200:
+            result = response.json()
+            status = result.get("message", {}).get("status")
+            if status == "Active":
+                frappe.cache().set_value(LICENSE_CACHE_KEY, "Active", expires_in_sec=LICENSE_CHECK_INTERVAL)
+                return True, "Active"
+            else:
+                frappe.cache().delete_value(LICENSE_CACHE_KEY)
+                frappe.log_error(f"License Status Denied: {status} for {site_domain}", "Attendance Matrix License")
+                return False, f"Status: {status}"
+        else:
+            frappe.log_error(f"License Check Failed ({response.status_code}): {response.text}", "Attendance Matrix License")
+            return False, f"HTTP {response.status_code}"
 
     except Exception as e:
         frappe.log_error(f"License Check Error: {str(e)}", "Attendance Matrix License Error")
