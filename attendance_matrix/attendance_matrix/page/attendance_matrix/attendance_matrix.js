@@ -471,7 +471,7 @@ class AttendanceMatrixWrapper {
                             </span>
                             <!-- Permission Badge -->
                             <span v-if="store.permission_info" class="badge" 
-                                  :class="store.permission_info.has_full_access ? 'bg-primary' : 'bg-warning text-dark'"
+                                  style="background-color: #ffe4ec; color: #6b4c5a; border: 1px solid #f8c8d8;"
                                   :title="store.permission_info.has_full_access ? 'Full Access' : 'Department Restricted'">
                                 <i :class="store.permission_info.has_full_access ? 'fa fa-unlock' : 'fa fa-lock'"></i>
                                 {{ store.permission_info.has_full_access ? __('All Departments') : (store.permission_info.permitted_departments ? store.permission_info.permitted_departments.join(', ') : __('All Departments')) }}
