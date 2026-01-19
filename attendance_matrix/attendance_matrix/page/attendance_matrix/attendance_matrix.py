@@ -5,6 +5,28 @@ from frappe.utils import getdate, nowdate, add_days, get_first_day, get_last_day
 # Import License Validator
 from attendance_matrix.license import validate_license_hook
 
+def get_permitted_departments():
+    """
+    Returns list of department names the current user has access to.
+    Returns None if user has full access (HR Manager, System Manager, or no restrictions).
+    """
+    # Check if user has full access via Role
+    user_roles = frappe.get_roles(frappe.session.user)
+    if any(role in user_roles for role in ["System Manager", "HR Manager", "HR User"]):
+        return None  # Full access
+    
+    # Get departments from User Permission
+    permitted = frappe.db.get_all(
+        "User Permission",
+        filters={
+            "user": frappe.session.user,
+            "allow": "Department"
+        },
+        pluck="for_value"
+    )
+    
+    return permitted if permitted else None  # Return None if no restrictions set
+
 @frappe.whitelist()
 def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None):
     # SECURITY: Enforce License Check (Cannot be bypassed by disabling hooks)
@@ -33,22 +55,33 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     first_day = get_first_day(f"{year}-{month}-01")
     last_day = get_last_day(first_day)
     
-    # 1. Fetch Employees
+    # 1. Fetch Employees with Permission Filter
     filters = {}
-    if department:
+    
+    # PERMISSION: Filter by User Permission
+    permitted_depts = get_permitted_departments()
+    if permitted_depts is not None:
+        # User has department restrictions
+        if department:
+            if department in permitted_depts:
+                filters['department'] = department
+            else:
+                frappe.throw(_("Bạn không có quyền truy cập phòng ban này / You don't have permission for this department"))
+        else:
+            filters['department'] = ['in', permitted_depts]
+    elif department:
+        # No restrictions, apply user's filter
         filters['department'] = department
+    
     if company:
         filters['company'] = company
     if employee:
         filters['name'] = ["like", f"%{employee}%"] # Partial match for search
     if shift:
         filters['default_shift'] = shift
-        
-    # Remove 'Active' status filter for debugging, or keep it if strictly required.
-    # filters['status'] = 'Active' 
 
     employees = frappe.get_all("Employee", 
-        fields=["name", "employee_name", "department", "designation", "default_shift"], # Added default_shift
+        fields=["name", "employee_name", "department", "designation", "default_shift"],
         filters=filters,
         order_by="employee_name asc"
     )
@@ -148,6 +181,18 @@ def save_matrix_bulk(data):
             
             if not employee or not date: 
                 continue
+            
+            # PERMISSION: Check if user can edit this employee
+            permitted_depts = get_permitted_departments()
+            if permitted_depts is not None:
+                emp_dept = frappe.db.get_value("Employee", employee, "department")
+                if emp_dept not in permitted_depts:
+                    results["errors"].append({
+                        "employee": employee,
+                        "date": date,
+                        "error": _("Bạn không có quyền chỉnh sửa nhân viên này / You don't have permission to edit this employee")
+                    })
+                    continue
 
             # Check if exists
             existing = frappe.db.exists("Attendance", {
