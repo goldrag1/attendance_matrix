@@ -7,7 +7,8 @@ export default {
             company: "",
             department: "",
             employee: "",
-            shift: ""
+            shift: "",
+            active_only: true
         },
         employees: [],
         attendance: {}, // { employee_date: { status, hours, ... }}

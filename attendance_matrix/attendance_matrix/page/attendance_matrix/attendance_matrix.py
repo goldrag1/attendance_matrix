@@ -29,7 +29,7 @@ def get_permitted_departments():
     return permitted if permitted else None  # Return None if no restrictions set
 
 @frappe.whitelist()
-def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None):
+def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None, active_only=True):
     # SECURITY: Enforce License Check (Cannot be bypassed by disabling hooks)
     validate_license_hook()
 
@@ -59,6 +59,13 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     # 1. Fetch Employees with Permission Filter
     filters = {}
     
+    # Handle active_only filter
+    # Check if active_only is "true" string (from JS) or True boolean
+    is_active_only = str(active_only).lower() == "true"
+    
+    if is_active_only:
+        filters['status'] = 'Active'
+
     # PERMISSION: Filter by User Permission
     permitted_depts = get_permitted_departments()
     if permitted_depts is not None:
@@ -82,7 +89,7 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
         filters['default_shift'] = shift
 
     employees = frappe.get_all("Employee", 
-        fields=["name", "employee_name", "department", "designation", "default_shift"],
+        fields=["name", "employee_name", "department", "designation", "default_shift", "status"],
         filters=filters,
         order_by="employee_name asc"
     )

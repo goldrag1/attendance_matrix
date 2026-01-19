@@ -30,7 +30,7 @@ class AttendanceMatrixWrapper {
         ];
 
         frappe.require(assets, () => {
-            console.log("Attendance Matrix v1.4.3 (Zip) Loaded Successfully");
+            console.log("Attendance Matrix v1.7.2 Loaded Successfully");
             this.launchVue();
         });
     }
@@ -386,6 +386,10 @@ class AttendanceMatrixWrapper {
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showShifts" checked onchange="if(window.attendanceGridApi) window.attendanceGridApi.setColumnVisible('default_shift', this.checked)">
                                                 <label class="custom-control-label" for="showShifts">{{ __('Default Shift') }}</label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox">
+                                                <input class="custom-control-input" type="checkbox" id="activeOnly" v-model="store.filters.active_only">
+                                                <label class="custom-control-label" for="activeOnly">{{ __('Only Active Employees') }}</label>
                                             </div>
                                             <div class="dropdown-divider"></div>
                                             <div class="custom-control custom-checkbox">

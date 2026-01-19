@@ -107,6 +107,20 @@ export default {
                 cellStyle: { 'text-align': 'left' }
             },
             {
+                headerName: __("Status"),
+                field: "status",
+                pinned: "left",
+                width: 100,
+                hide: store.state.filters.active_only,
+                cellStyle: (params) => {
+                    // Visual cues for non-active status
+                    if (params.value !== 'Active') {
+                        return { 'color': 'red', 'font-weight': 'bold', 'text-align': 'left' };
+                    }
+                    return { 'color': 'green', 'text-align': 'left' };
+                }
+            },
+            {
                 headerName: __("Shift"),
                 field: "default_shift",
                 pinned: "left",
