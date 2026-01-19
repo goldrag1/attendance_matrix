@@ -1,3 +1,6 @@
+## v1.7.1
+- **Fix**: Sửa lỗi màn hình trắng khi tải trang (do lỗi cú pháp Vue template trong phần switch hiển thị viết tắt).
+
 ## v1.7.0
 - **Feature**: Bổ sung chế độ "Hiển thị viết tắt" (Toggle):
     - Khi BẬT: Các ô chấm công hiển thị mã viết tắt (VD: 1, 1/2) thay vì tên đầy đủ. Áp dụng cho cả giao diện và xuất Excel.

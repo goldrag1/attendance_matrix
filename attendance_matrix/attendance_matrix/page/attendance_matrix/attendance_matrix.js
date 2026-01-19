@@ -389,7 +389,7 @@ class AttendanceMatrixWrapper {
                                             </div>
                                             <div class="dropdown-divider"></div>
                                             <div class="custom-control custom-checkbox">
-                                                <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="if(window.attendanceGridApi) window.attendanceGridApi.redrawRows()">
+                                                <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="window.attendanceGridApi && window.attendanceGridApi.redrawRows()">
                                                 <label class="custom-control-label" for="showAbbr">{{ __('Hiển thị viết tắt') }}</label>
                                             </div>
                                         </div>
