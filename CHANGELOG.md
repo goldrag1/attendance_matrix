@@ -1,3 +1,7 @@
+## v1.6.10
+- **System**: Đổi tên file thư viện `ag-grid.css` thành `ag-grid-custom.css` để khắc phục triệt để lỗi phân quyền (Permission Denied) khi update trên các máy chủ mà file cũ bị chiếm quyền bởi root.
+- **System**: Loại bỏ các file css cũ khỏi code nguồn.
+
 ## v1.6.9
 - **System**: Cải thiện thuật toán Autoupdate - tải code theo commit SHA mới nhất để tránh cache của GitHub (đảm bảo code luôn mới nhất thay vì bị trễ vài tiếng).
 - **System**: Tăng thời gian chờ và bắt buộc chạy lệnh `bench build` khi update.

@@ -24,8 +24,8 @@ class AttendanceMatrixWrapper {
         const assets = [
             "/assets/attendance_matrix/js/libs/vue.global.js",
             "/assets/attendance_matrix/js/libs/ag-grid-community.min.js",
-            "/assets/attendance_matrix/css/ag-grid.css",
-            "/assets/attendance_matrix/css/ag-theme-alpine.css",
+            "/assets/attendance_matrix/css/libs/ag-grid-custom.css",
+            "/assets/attendance_matrix/css/libs/ag-theme-alpine-custom.css",
             "/assets/attendance_matrix/css/attendance_matrix.css"
         ];
 
