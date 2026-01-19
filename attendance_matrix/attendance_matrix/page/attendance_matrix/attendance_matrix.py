@@ -244,6 +244,21 @@ def save_matrix_bulk(data):
             final_custom_status = raw_status 
             final_erp_status = raw_status # Default to same if no mapping found
 
+            # Build list of valid abbreviations
+            valid_abbreviations = [s.abbreviation for s in settings.status_map if s.abbreviation]
+            valid_statuses = [s.status for s in settings.status_map]
+            all_valid = valid_abbreviations + valid_statuses
+
+            # VALIDATION: Check if status is valid
+            if raw_status not in all_valid:
+                valid_list = ", ".join(valid_abbreviations) if valid_abbreviations else ", ".join(valid_statuses[:5])
+                results["errors"].append({
+                    "employee": employee,
+                    "date": date,
+                    "error": _(f"Trạng thái '{raw_status}' không hợp lệ. Các giá trị hợp lệ: {valid_list}")
+                })
+                continue
+
             if raw_status in status_map_config and status_map_config[raw_status]:
                 final_erp_status = status_map_config[raw_status]
             

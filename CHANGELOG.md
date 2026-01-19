@@ -1,3 +1,6 @@
+## v1.6.7
+- **UX**: Khi nhập trạng thái không hợp lệ, hiển thị thông báo rõ ràng liệt kê các giá trị hợp lệ thay vì lỗi quyền truy cập khó hiểu.
+
 ## v1.6.6
 - **Permission**: Dropdown Công ty giờ chỉ hiển thị công ty có phòng ban được phép.
 - **Permission**: Danh sách nhân viên cho tìm kiếm cũng được lọc theo phòng ban được phép.
