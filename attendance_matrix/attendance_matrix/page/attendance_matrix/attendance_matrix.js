@@ -30,7 +30,7 @@ class AttendanceMatrixWrapper {
         ];
 
         frappe.require(assets, () => {
-            console.log("Attendance Matrix v1.7.3 Loaded Successfully");
+            console.log("Attendance Matrix v1.7.4 Loaded Successfully");
             this.launchVue();
         });
     }
@@ -394,16 +394,16 @@ class AttendanceMatrixWrapper {
                                             <div class="dropdown-divider"></div>
                                             <div class="custom-control custom-checkbox">
                                                 <input class="custom-control-input" type="checkbox" id="showAbbr" v-model="store.showAbbreviations" @change="window.attendanceGridApi && window.attendanceGridApi.redrawRows()">
-                                                <label class="custom-control-label" for="showAbbr">{{ __('Hiển thị viết tắt') }}</label>
+                                                <label class="custom-control-label" for="showAbbr">{{ __('Show Abbreviations') }}</label>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <button class="btn btn-sm btn-light border shadow-sm" @click="resetView" title="Reset Filters">
+                                <button class="btn btn-sm btn-light border shadow-sm" @click="resetView" :title="__('Reset Filters')">
                                     <i class="fa fa-refresh text-muted"></i> <span class="d-none d-lg-inline ms-1">{{ __('Reset') }}</span>
                                 </button>
-                                <button class="btn btn-sm btn-light border shadow-sm" @click="toggleFullscreen" title="Toàn màn hình">
+                                <button class="btn btn-sm btn-light border shadow-sm" @click="toggleFullscreen" :title="__('Fullscreen')">
                                     <i class="fa fa-expand text-muted"></i>
                                 </button>
                                 <button class="btn btn-sm btn-light border shadow-sm" @click="showSettings=true" title="Config Shifts and Codes">

@@ -1,3 +1,6 @@
+## v1.7.4
+- **i18n**: Chuẩn hóa ngôn ngữ UI (Show Abbreviations, Fullscreen, Reset Filters) sang tiếng Anh làm gốc và bổ sung bản dịch tiếng Việt tương ứng.
+
 ## v1.7.3
 - **i18n**: Bổ sung dịch tiếng Việt cho checkbox "Chỉ hiện nhân viên đang làm việc".
 
