@@ -1,0 +1,38 @@
+{
+    "actions": [],
+    "creation": "2026-01-20 02:00:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "overtime_name",
+        "abbreviation"
+    ],
+    "fields": [
+        {
+            "fieldname": "overtime_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "T\u00ean Ki\u1ec3u L\u00e0m th\u00eam",
+            "reqd": 1
+        },
+        {
+            "fieldname": "abbreviation",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Vi\u1ebft t\u1eaft",
+            "reqd": 1
+        }
+    ],
+    "istable": 1,
+    "links": [],
+    "modified": "2026-01-20 02:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Attendance Matrix",
+    "name": "Attendance Matrix Overtime Type",
+    "owner": "Administrator",
+    "permissions": [],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "track_changes": 1
+}

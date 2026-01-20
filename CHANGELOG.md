@@ -1,3 +1,17 @@
+## v2.0
+- **Major Feature**: Hỗ trợ toàn diện tính năng **Chấm công tăng ca (Overtime)**:
+    - Bổ sung view "Overtime" riêng biệt với cột "Kiểu tăng ca" thay thế cho cột "Ca".
+    - Nhập liệu thông minh: Hỗ trợ nhập "Viết tắt + Số lượng" (VD: "PT 5" -> "PT: 5") hoặc tự động nhận diện kiểu khi nhập số.
+    - Auto-detection: Tự động phát hiện trạng thái "Hỗn hợp" (Mixed) nếu một người có nhiều kiểu tăng ca trong cùng một ngày.
+- **Legacy Support**:
+    - **Overtime**: Hệ thống tự động quét và hiển thị các kiểu tăng ca cũ (đã bị đổi tên hoặc xóa khỏi cấu hình) trong cả giao diện lưới và file Excel, đảm bảo không mất dữ liệu lịch sử.
+    - **Attendance**: Tương tự, tự động phát hiện và hiển thị các trạng thái chấm công cũ trong cột tổng hợp.
+- **Excel Export**: Xuất file Excel thông minh, tự động thay đổi cột theo view (Chấm công / Tăng ca) và bao gồm đầy đủ các cột tổng hợp (bao gồm cả dữ liệu Legacy).
+- **UI/UX**:
+    - Cải thiện độ tương phản nút chuyển đổi View (Xanh / Đỏ) để dễ nhận biết.
+    - Fix lỗi màn hình trắng khi tải trang (do lỗi cú pháp template).
+- **i18n**: Chuẩn hóa toàn bộ bản dịch tiếng Anh - tiếng Việt cho các tính năng mới (Mixed, Legacy Data, Overtime Codes...).
+
 ## v1.7.6
 - **System**: Cải thiện logic tìm kiếm lệnh `bench` khi cập nhật. Hệ thống sẽ tự động tìm trong thư mục `env` của dự án nếu không tìm thấy trong biến môi trường (Khắc phục lỗi "Asset build skipped" trên một số server).
 

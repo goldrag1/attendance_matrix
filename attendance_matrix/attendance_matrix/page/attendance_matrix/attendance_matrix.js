@@ -37,7 +37,9 @@ class AttendanceMatrixWrapper {
 
     async launchVue() {
         const $container = $(this.wrapper).find('.layout-main-section');
-        $container.html(frappe.render_template('attendance_matrix', {}));
+        $container.html(frappe.render_template('attendance_matrix', {
+            loading_text: __('Loading Attendance Matrix...')
+        }));
 
         // Dynamically import our modules with cache buster
         const v = new Date().getTime() + "_debug_v2";
@@ -79,6 +81,9 @@ class AttendanceMatrixWrapper {
                     filterTimeout: null,
                     appVersion: null,
                     updateAvailable: false,
+                    appVersion: null,
+                    appVersion: null,
+                    updateAvailable: false,
                     isChecking: false
                 }
             },
@@ -99,6 +104,7 @@ class AttendanceMatrixWrapper {
                         // Ensure arrays exist
                         if (!this.tempSettings.status_map) this.tempSettings.status_map = [];
                         if (!this.tempSettings.shift_map) this.tempSettings.shift_map = [];
+                        if (!this.tempSettings.overtime_types) this.tempSettings.overtime_types = [];
 
                         // Fix Time Format (HH:mm:ss -> HH:mm) for input type="time"
                         // Robustly handle '8:00:00' -> '08:00' and '17:00:00' -> '17:00'
@@ -272,9 +278,11 @@ class AttendanceMatrixWrapper {
 
                             // 3. Re-sync tempSettings with fresh data from Store (which was reloaded by saveSettings)
                             // This ensures we have valid IDs and consistent state
+                            // This ensures we have valid IDs and consistent state
                             this.tempSettings = JSON.parse(JSON.stringify(store.state.settings));
                             if (!this.tempSettings.status_map) this.tempSettings.status_map = [];
                             if (!this.tempSettings.shift_map) this.tempSettings.shift_map = [];
+                            if (!this.tempSettings.overtime_types) this.tempSettings.overtime_types = [];
 
                             frappe.show_alert(__("Permanently deleted data row."));
                         }
@@ -288,9 +296,11 @@ class AttendanceMatrixWrapper {
                             await store.saveSettings(this.tempSettings);
 
                             // Re-sync
+                            // Re-sync
                             this.tempSettings = JSON.parse(JSON.stringify(store.state.settings));
                             if (!this.tempSettings.status_map) this.tempSettings.status_map = [];
                             if (!this.tempSettings.shift_map) this.tempSettings.shift_map = [];
+                            if (!this.tempSettings.overtime_types) this.tempSettings.overtime_types = [];
 
                             frappe.show_alert(__("Deleted entire list."));
                         }
@@ -305,7 +315,10 @@ class AttendanceMatrixWrapper {
                         company: filters.company || "",
                         employee: filters.employee || "",
                         shift: filters.shift || "",
-                        abbreviation_mode: this.store.showAbbreviations ? 1 : 0
+                        employee: filters.employee || "",
+                        shift: filters.shift || "",
+                        abbreviation_mode: this.store.showAbbreviations ? 1 : 0,
+                        mode: this.store.viewMode
                     }).toString();
                     const url = `/api/method/attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.export_attendance_excel?${params}`;
                     window.open(url, '_blank');
@@ -356,11 +369,27 @@ class AttendanceMatrixWrapper {
                                  </span>
                              </div>
                          </div>
+                         
+                         <!-- View Switcher (Tabs) -->
+                         <div class="d-flex bg-light rounded p-1 mx-3" style="border: 1px solid #e5e7eb;">
+                             <button class="btn btn-sm px-3 fw-bold" 
+                                 :class="store.viewMode==='attendance' ? 'btn-primary shadow-sm text-white' : 'text-muted btn-light border-0'"
+                                 style="min-width: 100px; transition: all 0.2s;"
+                                 @click="store.viewMode='attendance'; redrawGrid()">
+                                 {{ __('Attendance') }}
+                             </button>
+                             <button class="btn btn-sm px-3 fw-bold" 
+                                 :class="store.viewMode==='overtime' ? 'btn-danger shadow-sm text-white' : 'text-muted btn-light border-0'"
+                                 style="min-width: 100px; transition: all 0.2s;"
+                                 @click="store.viewMode='overtime'; redrawGrid()">
+                                 {{ __('Overtime') }}
+                             </button>
+                         </div>
 
                          <!-- Interactive Area (Right: Legend + Buttons) -->
                          <div class="d-flex align-items-center gap-3 ms-auto" style="min-width: 0;">
-                             <!-- Legend -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex">
+                             <!-- Legend (Attendance) -->
+                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-if="store.viewMode !== 'overtime'">
                                 <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Code') }}:</span>
                                 <div class="d-flex gap-2 align-items-center">
                                     <div v-for="s in store.settings.status_map" :key="s.abbreviation" class="d-flex align-items-center gap-1">
@@ -371,6 +400,22 @@ class AttendanceMatrixWrapper {
                                         </span>
                                         <span class="small text-muted">{{ s.status }}</span>
                                     </div>
+                                </div>
+                             </div>
+
+                             <!-- Legend (Overtime) -->
+                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else>
+                                <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Overtime Codes') }}:</span>
+                                <div class="d-flex gap-3 align-items-center">
+                                    <div v-for="ot in store.settings.overtime_types" :key="ot.abbreviation" class="d-flex align-items-center gap-1">
+                                        <span class="badge bg-light text-primary border shadow-sm" style="font-size: 11px;">
+                                            {{ ot.abbreviation }}
+                                        </span>
+                                        <span class="small text-muted fw-bold">{{ ot.overtime_name }}</span>
+                                    </div>
+                                    <span v-if="!store.settings.overtime_types || store.settings.overtime_types.length === 0" class="small text-muted italic">
+                                        ({{ __('No types defined') }})
+                                    </span>
                                 </div>
                              </div>
                              <div class="vr d-none d-xl-block mx-2"></div>
@@ -460,12 +505,21 @@ class AttendanceMatrixWrapper {
                                 </datalist>
                             </div>
 
-                             <!-- Filter Item: Chinh Ca -->
-                            <div class="d-flex flex-column" style="min-width: 120px;">
+                            <!-- Filter Item: Shift (Attendance Mode) -->
+                            <div class="d-flex flex-column" style="min-width: 120px;" v-if="store.viewMode !== 'overtime'">
                                 <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Shift') }}</label>
                                  <select class="form-select form-select-sm bg-white border-0 shadow-sm" v-model="store.filters.shift" style="border-radius: 20px;">
                                     <option value="">-- {{ __('All') }} --</option>
                                     <option v-for="s in store.settings.shift_map" :value="s.shift_name">{{ s.shift_name }}</option>
+                                </select>
+                            </div>
+
+                            <!-- Filter Item: Overtime Type (Overtime Mode) -->
+                            <div class="d-flex flex-column" style="min-width: 120px;" v-if="store.viewMode === 'overtime'">
+                                <label class="small text-muted fw-bold mb-1 ms-1">{{ __('Overtime Types') }}</label>
+                                 <select class="form-select form-select-sm bg-white border-0 shadow-sm" v-model="store.filters.overtime_type" style="border-radius: 20px;">
+                                    <option value="">-- {{ __('All') }} --</option>
+                                    <option v-for="ot in store.settings.overtime_types" :value="ot.overtime_name">{{ ot.overtime_name }}</option>
                                 </select>
                             </div>
 
@@ -492,7 +546,7 @@ class AttendanceMatrixWrapper {
                             <!-- Permission Badge -->
                             <span v-if="store.permission_info" class="badge" 
                                   style="background-color: #ffe4ec; color: #6b4c5a; border: 1px solid #f8c8d8;"
-                                  :title="store.permission_info.has_full_access ? 'Full Access' : 'Department Restricted'">
+                                  :title="store.permission_info.has_full_access ? __('Full Access') : __('Department Restricted')">
                                 <i :class="store.permission_info.has_full_access ? 'fa fa-unlock' : 'fa fa-lock'"></i>
                                 {{ store.permission_info.has_full_access ? __('All Departments') : (store.permission_info.permitted_departments ? store.permission_info.permitted_departments.join(', ') : __('All Departments')) }}
                             </span>
@@ -519,6 +573,9 @@ class AttendanceMatrixWrapper {
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" :class="{active: activeTab==='shift'}" href="#" @click.prevent="activeTab='shift'">{{ __('Shift') }}</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" :class="{active: activeTab==='overtime'}" href="#" @click.prevent="activeTab='overtime'">{{ __('Overtime Types') }}</a>
                                         </li>
                                     </ul>
 
@@ -570,6 +627,28 @@ class AttendanceMatrixWrapper {
                                         <div class="d-flex justify-content-between">
                                             <button class="btn btn-sm btn-light" @click="tempSettings.shift_map.push({shift_name:'', start_time:'', end_time:''})">+ {{ __('Add Row') }}</button>
                                             <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('shift_map')">{{ __('Reset / Delete All') }}</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Overtime Tab -->
+                                    <div v-if="activeTab==='overtime'">
+                                        <div class="alert alert-info small py-1 mb-2">
+                                            <i class="fa fa-info-circle"></i> <b>{{ __('Overtime Types') }}:</b> 
+                                            {{ __("Define overtime codes (e.g. OT1, OT2) and their names. These will be used for shorthand entry.") }}
+                                        </div>
+                                        <table class="table table-bordered table-sm">
+                                            <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Abbreviation') }}</th><th>#</th></tr></thead>
+                                            <tbody>
+                                                <tr v-for="(row, idx) in tempSettings.overtime_types" :key="idx">
+                                                    <td><input v-model="row.overtime_name" class="form-control form-control-sm" placeholder="e.g. Normal Overtime"></td>
+                                                    <td><input v-model="row.abbreviation" class="form-control form-control-sm" placeholder="e.g. OT1"></td>
+                                                    <td><button class="btn btn-danger btn-xs" @click="confirmDelete('overtime_types', idx)">X</button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="d-flex justify-content-between">
+                                            <button class="btn btn-sm btn-light" @click="tempSettings.overtime_types.push({overtime_name:'', abbreviation:''})">+ {{ __('Add Row') }}</button>
+                                            <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('overtime_types')">{{ __('Reset / Delete All') }}</button>
                                         </div>
                                     </div>
                                 </div>

@@ -8,6 +8,7 @@ export default {
             department: "",
             employee: "",
             shift: "",
+            overtime_type: "", // Added overtime filter
             active_only: true
         },
         employees: [],
@@ -27,7 +28,11 @@ export default {
         loading: false,
         saving: false,
         dirty: new Set(), // Track changed employees
-        showAbbreviations: true // Toggle for Abbreviation Mode
+        loading: false,
+        saving: false,
+        dirty: new Set(), // Track changed employees
+        showAbbreviations: true, // Toggle for Abbreviation Mode
+        viewMode: "attendance" // 'attendance' or 'overtime'
     }),
 
     async init() {
@@ -70,7 +75,11 @@ export default {
 
             this.state.attendance = data.attendance || {};
             this.state.holidays = data.holidays || [];
-            this.state.settings = data.settings || { status_map: [], shift_map: [] }; // settings
+            this.state.attendance = data.attendance || {};
+            this.state.holidays = data.holidays || [];
+            this.state.settings = data.settings || { status_map: [], shift_map: [], overtime_types: [] }; // settings
+            // Safety Init
+            if (!this.state.settings.overtime_types) this.state.settings.overtime_types = [];
             this.state.permission_info = data.permission_info || null; // Permission info
             this.state.employees = data.employees || []; // Set employees LAST to trigger update
             this.state.dirty.clear();
@@ -112,14 +121,24 @@ export default {
 
         this.state.saving = true;
         const changes = [];
+        const mode = this.state.viewMode; // 'attendance' or 'overtime'
+
         this.state.dirty.forEach(key => {
             const record = this.state.attendance[key];
             if (record) {
+                let statusVal = record.status;
+                if (mode === 'overtime') {
+                    // In Overtime Mode, we edit 'overtime_text' field (temporary field for editing)
+                    // or we map it from visual representation?
+                    // Let's assume the Grid writes to 'overtime_text' or re-uses 'status' if we are careful?
+                    // Ideally Grid writes to 'overtime_text'.
+                    statusVal = record.overtime_text || "";
+                }
+
                 changes.push({
                     employee: record.employee || key.split("_")[0],
                     date: record.date || key.split("_")[1],
-                    status: record.status,
-                    hours: record.hours
+                    status: statusVal // Backend expects 'status' key but treats it based on mode
                 });
             }
         });
@@ -127,7 +146,10 @@ export default {
         try {
             const r = await frappe.call({
                 method: "attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.save_matrix_bulk",
-                args: { data: JSON.stringify(changes) }
+                args: {
+                    data: JSON.stringify(changes),
+                    mode: mode
+                }
             });
 
             if (r.message && r.message.errors && r.message.errors.length > 0) {
@@ -164,18 +186,21 @@ export default {
             // Keep the LAST occurrence if duplicates exist (so user's latest edit wins)
             const cleanStatus = Array.from(new Map(newSettings.status_map.map(item => [item.abbreviation, item])).values());
             const cleanShift = Array.from(new Map(newSettings.shift_map.map(item => [item.shift_name, item])).values());
+            const cleanOvertime = Array.from(new Map(newSettings.overtime_types.map(item => [item.abbreviation, item])).values());
 
             const doc = {
                 doctype: "Attendance Matrix Settings",
                 status_map: cleanStatus,
-                shift_map: cleanShift
+                shift_map: cleanShift,
+                overtime_types: cleanOvertime
             };
 
             await frappe.call({
                 method: "attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.save_attendance_settings",
                 args: {
                     status_map: JSON.stringify(cleanStatus),
-                    shift_map: JSON.stringify(cleanShift)
+                    shift_map: JSON.stringify(cleanShift),
+                    overtime_types: JSON.stringify(cleanOvertime)
                 }
             });
 

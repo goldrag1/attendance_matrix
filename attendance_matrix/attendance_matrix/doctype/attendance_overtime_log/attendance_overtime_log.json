@@ -1,0 +1,36 @@
+{
+    "actions": [],
+    "creation": "2026-01-20 02:00:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "overtime_type",
+        "hours"
+    ],
+    "fields": [
+        {
+            "fieldname": "overtime_type",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Ki\u1ec3u L\u00e0m th\u00eam"
+        },
+        {
+            "fieldname": "hours",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "S\u1ed1 l\u01b0\u1ee3ng / Gi\u1edd"
+        }
+    ],
+    "istable": 1,
+    "links": [],
+    "modified": "2026-01-20 02:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Attendance Matrix",
+    "name": "Attendance Overtime Log",
+    "owner": "Administrator",
+    "permissions": [],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "track_changes": 1
+}

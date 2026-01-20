@@ -39,6 +39,17 @@
             "fieldtype": "Table",
             "label": "Danh sách Ca & Giờ làm",
             "options": "Attendance Matrix Shift Map"
+        },
+        {
+            "fieldname": "overtime_settings_section",
+            "fieldtype": "Section Break",
+            "label": "Cấu hình Làm thêm (Overtime)"
+        },
+        {
+            "fieldname": "overtime_types",
+            "fieldtype": "Table",
+            "label": "Danh sách Kiểu làm thêm",
+            "options": "Attendance Matrix Overtime Type"
         }
     ],
     "issingle": 1,

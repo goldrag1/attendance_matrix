@@ -50,6 +50,7 @@ export default {
         // React to store changes
         Vue.watch(() => store.state.employees, () => { console.log('Employees changed'); this.updateGrid(); });
         Vue.watch(() => store.state.meta, () => { console.log('Meta changed'); this.updateGrid(); }, { deep: true });
+        Vue.watch(() => store.state.viewMode, () => { console.log('ViewMode changed'); this.updateGrid(); });
 
         // Initial Render (Prevent race condition if data loaded before grid init)
         this.updateGrid();
@@ -81,6 +82,8 @@ export default {
     buildColumns() {
         const meta = store.state.meta;
         if (!meta.first_day) return [];
+
+        const viewMode = store.state.viewMode || 'attendance';
 
         // Fixed Columns
         const cols = [
@@ -126,13 +129,14 @@ export default {
                 pinned: "left",
                 width: 120,
                 cellStyle: { 'text-align': 'left' },
-                editable: true,
+                hide: viewMode === 'overtime', // Hide Shift in OT mode
+                editable: viewMode !== 'overtime', // Disable editing if hidden (safety)
                 cellEditor: 'agSelectCellEditor',
                 cellEditorParams: {
                     values: store.state.settings.shift_map.map(s => s.shift_name)
                 },
                 onCellValueChanged: (params) => {
-                    if (params.newValue !== params.oldValue) {
+                    if (params.newValue !== params.oldValue && viewMode !== 'overtime') {
                         // Use custom method to handle Auto-Creation of Shift Type
                         frappe.call({
                             method: 'attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.set_employee_shift',
@@ -147,6 +151,83 @@ export default {
                             }
                         });
                     }
+                }
+            },
+            {
+                headerName: __("Overtime Type"), // New Column
+                field: "overtime_type_selector",
+                pinned: "left",
+                width: 130,
+                cellStyle: { 'text-align': 'left', 'font-weight': 'bold' },
+                hide: viewMode !== 'overtime', // Only show in OT mode
+                editable: true,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: {
+                    values: (function () {
+                        const types = store.state.settings.overtime_types.map(ot => ot.overtime_name);
+                        return [...types, __("Mixed")];
+                    })()
+                },
+                valueGetter: (params) => {
+                    // Logic:
+                    // 1. Manual Override (temp_ot_prefs) has highest priority.
+                    // 2. Scan data:
+                    //    - If 0 data -> Default to First Configured Type.
+                    //    - If 1 type found -> Use that type.
+                    //    - If >1 types found -> "Mixed".
+
+                    const empId = params.data.name;
+
+                    // 1. Check Manual Override
+                    if (store.state.temp_ot_prefs && store.state.temp_ot_prefs[empId]) {
+                        return store.state.temp_ot_prefs[empId];
+                    }
+
+                    // 2. Scan Data
+                    const otParams = store.state.settings.overtime_types || [];
+                    if (otParams.length === 0) return "";
+
+                    const meta = store.state.meta;
+                    if (!meta.first_day) return otParams[0].overtime_name; // Default
+
+                    const distinctTypes = new Set();
+                    const start = new Date(meta.first_day);
+
+                    for (let i = 0; i < meta.days_in_month; i++) {
+                        // Reconstruct date key
+                        const d = new Date(start);
+                        d.setDate(start.getDate() + i);
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const dateStr = `${year}-${month}-${day}`;
+
+                        const key = `${empId}_${dateStr}`;
+                        const record = store.state.attendance[key];
+
+                        if (record && record.overtime && record.overtime.length > 0) {
+                            record.overtime.forEach(ot => distinctTypes.add(ot.type));
+                        }
+                    }
+
+                    if (distinctTypes.size === 0) {
+                        return otParams[0].overtime_name; // Default
+                    } else if (distinctTypes.size === 1) {
+                        return Array.from(distinctTypes)[0];
+                    } else {
+                        return __("Mixed");
+                    }
+                },
+                valueSetter: (params) => {
+                    const newVal = params.newValue;
+                    if (newVal === params.oldValue) return false;
+
+                    // Helper to save preference
+                    const empId = params.data.name;
+                    if (!store.state.temp_ot_prefs) store.state.temp_ot_prefs = {};
+                    store.state.temp_ot_prefs[empId] = newVal;
+
+                    return true; // value changed
                 }
             },
         ];
@@ -197,51 +278,47 @@ export default {
             cols.push({
                 headerName: headerName,
                 field: dateStr,
-                width: 60,
+                width: 70, // Slightly wider for OT text
                 headerClass: headerClass,
-                cellClass: (params) => {
-                    // Check if we have a specific color rule for this cell
+                cellClass: viewMode === 'overtime' ? cellClass : (params) => {
+                    // ATTENDANCE MODE: Existing Color Logic
                     const val = params.value;
                     if (val) {
                         const settings = store.state.settings.status_map || [];
                         const config = settings.find(s => s.status === val || s.abbreviation === val);
                         if (config && config.color) {
-                            return "text-center"; // Don't apply weekend class
+                            return "text-center";
                         }
                     }
-                    return cellClass; // Apply default calculated class (sunday-col, etc)
+                    return cellClass;
                 },
-                cellStyle: (params) => {
+                cellStyle: viewMode === 'overtime' ? (params) => {
+                    // OVERTIME MODE: Just visual feedback for non-empty
+                    if (params.value) return { 'background-color': '#e3f2fd', 'font-weight': 'bold' };
+                    return null;
+                } : (params) => {
+                    // ATTENDANCE MODE: Existing Color Logic
                     const val = params.value;
                     if (!val) return null;
-
-                    // Lookup color from settings
                     const settings = store.state.settings.status_map || [];
-                    // Match by Status Name OR Abbreviation (since we display Custom Status which is mapped to Status Name in settings)
                     const config = settings.find(s => s.status === val || s.abbreviation === val);
-
                     if (config && config.color) {
                         return {
                             'background-color': config.color,
-                            'color': '#000', // Ensure text is visible (could improve with contrast check later)
+                            'color': '#000',
                             'font-weight': '500'
                         };
                     }
                     return null;
                 },
                 editable: true,
-                cellRenderer: params => {
+                cellRenderer: viewMode === 'overtime' ? null : params => {
                     const val = params.value;
                     if (!val) return "";
-
-                    // Check Abbreviation Mode
+                    // Abbreviation Logic
                     if (store.state.showAbbreviations) {
                         const settings = store.state.settings.status_map || [];
                         const config = settings.find(s => s.status === val || s.abbreviation === val);
-                        // If current value is Full Status, try to return Abbr. 
-                        // If current value is Abbr, return it.
-                        // Actually val from DB is always expected to be Full Status (or what was saved).
-                        // logic: find config where status == val. If found, return abbr.
                         if (config && config.status === val && config.abbreviation) {
                             return config.abbreviation;
                         }
@@ -251,7 +328,33 @@ export default {
                 valueGetter: (params) => {
                     const key = `${params.data.name}_${dateStr}`;
                     const record = store.state.attendance[key];
-                    return record ? record.status : "";
+
+                    if (viewMode === 'overtime') {
+                        // Construct String from record.overtime array
+                        // Array of { type: "Overtime Name", hours: 2.0 }
+                        // Desired: "OT1: 2; OT2: 1"
+                        if (record && record.overtime && record.overtime.length > 0) {
+                            // Use Abbr if available AND showAbbreviations is ON
+                            const otParams = store.state.settings.overtime_types || [];
+                            const showAbbr = store.state.showAbbreviations; // Check the global toggle
+
+                            const parts = record.overtime.map(ot => {
+                                const config = otParams.find(c => c.overtime_name === ot.type);
+                                // Logic: If config exists AND (showAbbr is true OR config has no abbr), use abbr?
+                                // Usually: If showAbbr is true, use abbr. If false, use full name.
+                                let label = ot.type;
+                                if (config && config.abbreviation && showAbbr) {
+                                    label = config.abbreviation;
+                                }
+                                return `${label}: ${ot.hours}`;
+                            });
+                            return parts.join('; ');
+                        }
+                        return "";
+                    } else {
+                        // Attendance Mode
+                        return record ? record.status : "";
+                    }
                 },
                 valueSetter: (params) => {
                     const newVal = params.newValue;
@@ -259,22 +362,139 @@ export default {
 
                     let finalVal = newVal ? newVal.trim() : "";
 
-                    // Smart Input Map (Abbreviation -> Status)
-                    // Case insensitive check
-                    const settings = store.state.settings.status_map || [];
-                    const found = settings.find(s =>
-                        s.abbreviation.toLowerCase() === finalVal.toLowerCase() ||
-                        s.status.toLowerCase() === finalVal.toLowerCase()
-                    );
+                    if (viewMode === 'overtime') {
+                        // OVERTIME SETTER
+                        // 1. Optimistic Update of proper structure
+                        const key = `${params.data.name}_${dateStr}`;
+                        if (!store.state.attendance[key]) store.updateCell(params.data.name, dateStr, 'overtime', []);
 
-                    if (found) {
-                        finalVal = found.status;
+                        // Parse String -> List
+                        const otParams = store.state.settings.overtime_types || [];
+                        const otMap = {}; // Abbr -> Name
+                        const nameToAbbr = {}; // Name -> Abbr
+                        otParams.forEach(p => {
+                            otMap[p.abbreviation.toLowerCase()] = p.overtime_name;
+                            nameToAbbr[p.overtime_name] = p.abbreviation;
+                        });
+
+                        const newOvertimeList = [];
+                        let resultingText = finalVal;
+
+                        if (finalVal) {
+                            // SMART INPUT CHECK
+                            // If user typed just a number (e.g. "5" or "5.5")
+                            const isJustNumber = /^-?\d*(\.\d+)?$/.test(finalVal);
+
+                            if (isJustNumber) {
+                                // Get Current Preference
+                                const empId = params.data.name;
+                                let prefType = null;
+                                if (store.state.temp_ot_prefs && store.state.temp_ot_prefs[empId]) {
+                                    prefType = store.state.temp_ot_prefs[empId];
+                                } else if (otParams.length > 0) {
+                                    prefType = otParams[0].overtime_name;
+                                }
+
+                                if (prefType && prefType !== __("Mixed")) {
+                                    // User wants this specific type
+                                    // Auto-format! "5" -> "OT1: 5"
+                                    const qtyNum = parseFloat(finalVal);
+                                    if (qtyNum > 0) {
+                                        newOvertimeList.push({ type: prefType, hours: qtyNum });
+                                        // Update the text to be proper format
+                                        const abbr = nameToAbbr[prefType] || prefType;
+                                        resultingText = `${abbr}: ${qtyNum}`;
+                                    }
+                                } else {
+                                    // Mixed mode or No Config: Treat as raw, or default?
+                                    // If Mixed, we can't guess. 
+                                    if (otParams.length === 1) {
+                                        // Fallback if only 1 exists
+                                        const qtyNum = parseFloat(finalVal) || 0;
+                                        newOvertimeList.push({ type: otParams[0].overtime_name, hours: qtyNum });
+                                    }
+                                }
+                            } else {
+                                // Complex String, e.g. "OT1: 2; OT2: 1"
+                                // Also handle space format: "PT 5" -> "PT: 5"
+                                let finalParsedVal = finalVal;
+
+                                // Quick fix for "Abbr Space Quantity" IF it's a single entry without colons or semicolons
+                                if (!finalVal.includes(':') && !finalVal.includes(';') && finalVal.includes(' ')) {
+                                    const spParts = finalVal.trim().split(/\s+/);
+                                    if (spParts.length === 2) {
+                                        // Assume "Abbr Quantity"
+                                        const potentialAbbr = spParts[0];
+                                        const potentialQty = parseFloat(spParts[1]);
+                                        if (!isNaN(potentialQty)) {
+                                            // Validate Abbr
+                                            const realName = otMap[potentialAbbr.toLowerCase()];
+                                            if (realName) {
+                                                finalParsedVal = `${potentialAbbr}: ${potentialQty}`;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                const parts = finalParsedVal.split(';');
+                                let distinctTypes = new Set();
+
+                                parts.forEach(p => {
+                                    if (p.includes(':')) {
+                                        let [key, qty] = p.split(':');
+                                        key = key.trim().toLowerCase();
+                                        const qtyNum = parseFloat(qty.trim()) || 0;
+
+                                        const realName = otMap[key]; // Find by abbr
+                                        if (realName) {
+                                            newOvertimeList.push({ type: realName, hours: qtyNum });
+                                            distinctTypes.add(realName);
+                                        }
+                                    } else {
+                                        // Single value fallback?
+                                        if (otParams.length === 1) {
+                                            const qtyNum = parseFloat(p.trim()) || 0;
+                                            newOvertimeList.push({ type: otParams[0].overtime_name, hours: qtyNum });
+                                            distinctTypes.add(otParams[0].overtime_name);
+                                        }
+                                    }
+                                });
+
+                                // AUTO-DETECT MIXED
+                                if (distinctTypes.size > 1) {
+                                    const empId = params.data.name;
+                                    if (!store.state.temp_ot_prefs) store.state.temp_ot_prefs = {};
+                                    store.state.temp_ot_prefs[empId] = __("Mixed");
+                                    // Refresh the OT Type column for this row
+                                    params.api.refreshCells({ rowNodes: [params.node], columns: ['overtime_type_selector'] });
+                                }
+                            }
+                        }
+
+                        // Update Store Local
+                        store.updateCell(params.data.name, dateStr, 'overtime', newOvertimeList);
+                        // Store the smart-formatted text so it displays correctly immediately
+                        store.updateCell(params.data.name, dateStr, 'overtime_text', resultingText);
+
+                    } else {
+                        // ATTENDANCE SETTER
+                        // Smart Input Map (Abbreviation -> Status)
+                        const settings = store.state.settings.status_map || [];
+                        const found = settings.find(s =>
+                            s.abbreviation.toLowerCase() === finalVal.toLowerCase() ||
+                            s.status.toLowerCase() === finalVal.toLowerCase()
+                        );
+
+                        if (found) {
+                            finalVal = found.status;
+                        }
+                        store.updateCell(params.data.name, dateStr, 'status', finalVal);
                     }
-
-                    store.updateCell(params.data.name, dateStr, 'status', finalVal);
 
                     // Force refresh to show formatted value
                     params.api.refreshCells({ rowNodes: [params.node], columns: [params.column] });
+                    // Also refresh summary columns potentially?
+                    // params.api.refreshCells({ rowNodes: [params.node] }); // Refresh whole row
 
                     // AUTO-SAVE: Trigger save immediately
                     store.save();
@@ -285,40 +505,135 @@ export default {
         }
 
         // Summary Columns (Yellow in Excel) - DYNAMIC based on Settings
-        const statusMap = store.state.settings.status_map || [];
+        // Summary Columns Logic
+        if (viewMode === 'overtime') {
+            // OVERTIME SUMMARY
+            const configuredTypes = store.state.settings.overtime_types || [];
 
-        // Dictionary to group if needed. Here we just take unique abbreviations.
-        const uniqueStatuses = [...new Set(statusMap.map(s => s.status).filter(Boolean))]; // CHANGED: Map STATUS not Abbr
+            // 1. Scan for Legacy Types in Data
+            const foundTypes = new Set();
+            const attendanceInfo = store.state.attendance || {};
 
-        if (uniqueStatuses.length === 0) {
-            // Fallback Defaults
-            ['Present', 'Half Day', 'On Leave', 'Absent'].forEach(status => {
-                cols.push({
-                    headerName: status,
-                    width: 70,
-                    valueGetter: p => this.countStatus(p.data.name, [status]),
-                    cellStyle: { 'background-color': '#ffffcc', 'text-align': 'center', 'font-weight': 'bold' }
+            Object.values(attendanceInfo).forEach(record => {
+                if (record && record.overtime && Array.isArray(record.overtime)) {
+                    record.overtime.forEach(ot => {
+                        if (ot.type) foundTypes.add(ot.type);
+                    });
+                }
+            });
+
+            // 2. Merge Lists: Configured + Found (Legacy)
+            const combinedTypesMap = new Map();
+
+            // Add Configured First
+            configuredTypes.forEach(ct => {
+                combinedTypesMap.set(ct.overtime_name, {
+                    name: ct.overtime_name,
+                    abbr: ct.abbreviation,
+                    isLegacy: false
                 });
             });
+
+            // Add Found (Legacy) if not existing
+            foundTypes.forEach(ft => {
+                if (!combinedTypesMap.has(ft)) {
+                    combinedTypesMap.set(ft, {
+                        name: ft,
+                        abbr: ft, // Default abbr to full name for legacy
+                        isLegacy: true
+                    });
+                }
+            });
+
+            const finalTypeList = Array.from(combinedTypesMap.values());
+            console.log("DEBUG: building OT cols. Types:", finalTypeList);
+
+            if (finalTypeList.length === 0) {
+                // Nothing to show
+            } else {
+                finalTypeList.forEach(ot => {
+                    cols.push({
+                        headerName: ot.name,
+                        headerTooltip: ot.isLegacy ? `${ot.name} (${__('Legacy Data')})` : `${ot.name} (${ot.abbr})`,
+                        width: 80,
+                        valueGetter: p => this.sumOvertime(p.data.name, ot.name),
+                        cellStyle: {
+                            'background-color': ot.isLegacy ? '#fff3e0' : '#e3f2fd', // Orange tint for Legacy
+                            'text-align': 'center',
+                            'font-weight': 'bold',
+                            'border-left': '1px solid #ddd'
+                        }
+                    });
+                });
+            }
+
         } else {
-            uniqueStatuses.forEach(status => {
-                // Find config for color/name
-                const config = statusMap.find(s => s.status === status);
-                const abbr = config ? config.abbreviation : status;
+            // ATTENDANCE SUMMARY
+            const statusMap = store.state.settings.status_map || [];
 
-                cols.push({
-                    headerName: status, // REQUIREMENT: Full Status Name in Header
-                    headerTooltip: `${status} (${abbr})`,
-                    width: 70,
-                    valueGetter: p => this.countStatus(p.data.name, [status]),
-                    cellStyle: {
-                        'background-color': (config && config.color) ? config.color : '#ffffcc',
-                        'text-align': 'center',
-                        'font-weight': 'bold',
-                        'border-left': '1px solid #ddd'
-                    }
+            // 1. Scan for Legacy Statuses in Data
+            const foundStatuses = new Set();
+            const attendanceInfo = store.state.attendance || {};
+
+            Object.values(attendanceInfo).forEach(record => {
+                if (record && record.status) {
+                    foundStatuses.add(record.status);
+                }
+            });
+
+            // 2. Merge Lists
+            const combinedStatusMap = new Map();
+
+            // Add Configured First
+            statusMap.forEach(s => {
+                combinedStatusMap.set(s.status, {
+                    name: s.status,
+                    abbr: s.abbreviation,
+                    color: s.color,
+                    isLegacy: false
                 });
             });
+
+            // Add Found (Legacy)
+            foundStatuses.forEach(fs => {
+                if (!combinedStatusMap.has(fs)) {
+                    combinedStatusMap.set(fs, {
+                        name: fs,
+                        abbr: fs, // Default abbr to name
+                        color: '#fff3e0', // Default Legacy Color (Orange-ish)
+                        isLegacy: true
+                    });
+                }
+            });
+
+            const finalStatusList = Array.from(combinedStatusMap.values());
+
+            if (finalStatusList.length === 0) {
+                // Fallback Defaults if absolutely nothing exists
+                ['Present', 'Half Day', 'On Leave', 'Absent'].forEach(status => {
+                    cols.push({
+                        headerName: status,
+                        width: 70,
+                        valueGetter: p => this.countStatus(p.data.name, [status]),
+                        cellStyle: { 'background-color': '#ffffcc', 'text-align': 'center', 'font-weight': 'bold' }
+                    });
+                });
+            } else {
+                finalStatusList.forEach(st => {
+                    cols.push({
+                        headerName: st.name,
+                        headerTooltip: st.isLegacy ? `${st.name} (${__('Legacy Data')})` : `${st.name} (${st.abbr})`,
+                        width: 70,
+                        valueGetter: p => this.countStatus(p.data.name, [st.name]),
+                        cellStyle: {
+                            'background-color': st.isLegacy ? '#fff3e0' : (st.color || '#ffffcc'),
+                            'text-align': 'center',
+                            'font-weight': 'bold',
+                            'border-left': '1px solid #ddd'
+                        }
+                    });
+                });
+            }
         }
 
         return cols;
@@ -329,20 +644,10 @@ export default {
         let count = 0;
         const meta = store.state.meta;
         if (!meta.first_day) return 0;
-
-        // This is expensive if recalculated every frame for every cell.
-        // AG Grid valueGetter is okay.
-
-        // Improve: iterate store.state.attendance keys starting with employee
-        // But keys are unstructured.
-
-        // Better: iterate days
-        // Better: iterate days
         const start = new Date(meta.first_day);
         for (let i = 0; i < meta.days_in_month; i++) {
             const d = new Date(start);
             d.setDate(start.getDate() + i);
-
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
@@ -354,6 +659,32 @@ export default {
             }
         }
         return count;
+    },
+
+    sumOvertime(employee, otTypeName) {
+        let total = 0.0;
+        const meta = store.state.meta;
+        if (!meta.first_day) return 0;
+        const start = new Date(meta.first_day);
+
+        for (let i = 0; i < meta.days_in_month; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            const key = `${employee}_${dateStr}`;
+            const record = store.state.attendance[key];
+
+            if (record && record.overtime) {
+                const entry = record.overtime.find(ot => ot.type === otTypeName);
+                if (entry) {
+                    total += parseFloat(entry.hours) || 0;
+                }
+            }
+        }
+        return parseFloat(total.toFixed(2)); // Nice formatting
     },
 
     onCellValueChanged(event) {
