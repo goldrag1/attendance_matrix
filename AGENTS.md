@@ -38,3 +38,28 @@ bd sync               # Sync with git
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Release Workflow (Client Auto-Update)
+
+To ensure clients can automatically update the app, you **MUST** follow these steps exclusively when releasing a new version:
+
+1.  **Update CHANGELOG.md**:
+    *   Add a new header `## vX.Y.Z` at the top.
+    *   List changes clearly.
+
+2.  **Bump VERSION file**:
+    *   Update the file `VERSION` in the root directory to `vX.Y.Z`.
+    *   *This is the single source of truth for the update checker.*
+
+3.  **Bump __init__.py**:
+    *   Update `__version__ = 'X.Y.Z'` in `attendance_matrix/__init__.py`.
+    *   *This is used by Frappe to track the installed app version.*
+
+4.  **Push to GitHub**:
+    *   Commit all changes.
+    *   Create a tag: `git tag vX.Y.Z` (Optional but recommended).
+    *   **PUSH**: `git push origin main --tags`.
+
+**Why?**
+The client's valid update logic in `updates.py` checks `raw.githubusercontent.com/.../VERSION`. If this file matches the local version, no update is offered.
+
+
