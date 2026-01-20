@@ -84,13 +84,25 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     if company:
         filters['company'] = company
     if employee:
-        filters['name'] = ["like", f"%{employee}%"] # Partial match for search
+        # SEARCH LOGIC: Filter by ID OR Name
+        # We need to drop 'name' from filters and use or_filters kwarg in get_all
+        # But wait, get_all 'filters' param is AND. 
+        # Frappe's get_all supports 'or_filters' as a separate argument.
+        pass # Handle below in get_all call
     if shift:
         filters['default_shift'] = shift
+
+    or_filters = None
+    if employee:
+        or_filters = {
+            "name": ["like", f"%{employee}%"],
+            "employee_name": ["like", f"%{employee}%"]
+        }
 
     employees = frappe.get_all("Employee", 
         fields=["name", "employee_name", "department", "designation", "default_shift", "status"],
         filters=filters,
+        or_filters=or_filters,
         order_by="employee_name asc"
     )
 

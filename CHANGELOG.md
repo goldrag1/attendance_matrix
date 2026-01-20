@@ -1,3 +1,10 @@
+## v2.0.1
+- **Fix**: Sửa lỗi bộ lọc nhân viên (Filter by Employee). Giờ đây search sẽ tìm cả trong ID (name) và Tên nhân viên (employee_name), khắc phục lỗi không tìm thấy người nếu ID khác tên.
+- **UX**: Cải thiện giao diện Cấu hình (Settings):
+    - Thêm thanh cuộn (Scrollbar) cho các bảng danh sách dài.
+    - Hỗ trợ Kéo & Thả (Drag & Drop) để sắp xếp thứ tự các trạng thái, ca làm việc và mã tăng ca.
+    - Tự động ghi nhớ thứ tự sắp xếp.
+
 ## v2.0
 - **Major Feature**: Hỗ trợ toàn diện tính năng **Chấm công tăng ca (Overtime)**:
     - Bổ sung view "Overtime" riêng biệt với cột "Kiểu tăng ca" thay thế cho cột "Ca".

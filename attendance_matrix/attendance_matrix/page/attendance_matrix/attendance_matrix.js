@@ -81,10 +81,9 @@ class AttendanceMatrixWrapper {
                     filterTimeout: null,
                     appVersion: null,
                     updateAvailable: false,
-                    appVersion: null,
-                    appVersion: null,
-                    updateAvailable: false,
-                    isChecking: false
+
+                    draggingIndex: -1,
+                    draggingList: null
                 }
             },
             watch: {
@@ -352,10 +351,58 @@ class AttendanceMatrixWrapper {
                     if (window.attendanceGridApi) {
                         window.attendanceGridApi.redrawRows();
                     }
+                },
+                // DRAG AND DROP HANDLERS
+                onDragStart(listName, index, event) {
+                    this.draggingIndex = index;
+                    this.draggingList = listName;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.target.classList.add('dragging');
+                },
+                onDragEnd(event) {
+                    this.draggingIndex = -1;
+                    this.draggingList = null;
+                    event.target.classList.remove('dragging');
+                    document.querySelectorAll('.dragging-over').forEach(el => el.classList.remove('dragging-over'));
+                },
+                onDragEnter(listName, index, event) {
+                    if (this.draggingList !== listName) return;
+                    if (index === this.draggingIndex) return;
+
+                    // Simple visual cue logic could go here, but Vue transition-group is better.
+                    // Since we use simple tables, strictly reordering arrays is easiest.
+                    // To prevent jitter, we only reorder on Drop or strictly throttle dragover.
+                    // But native HTML5 dnd with live reorder requires careful handling.
+                    // Let's implement "Drop to Reorder" style for simplicity and stability.
+                    // Or "Swap on Enter" which gives immediate feedback.
+
+                    const list = this.tempSettings[listName];
+                    const item = list.splice(this.draggingIndex, 1)[0];
+                    list.splice(index, 0, item);
+                    this.draggingIndex = index; // Update index to new position
                 }
             },
             template: `
                 <div class="attendance-matrix-app d-flex flex-column bg-white" style="height: calc(100vh - 65px); overflow: hidden;">
+                    <component :is="'style'">
+                        .scrollable-table-container {
+                            max-height: 60vh;
+                            overflow-y: auto;
+                            border: 1px solid #dee2e6;
+                        }
+                        .drag-handle {
+                            cursor: move;
+                            color: #aaa;
+                        }
+                        .drag-handle:hover {
+                            color: #333;
+                        }
+                        tr.dragging {
+                            opacity: 0.5;
+                            background: #f0f0f0;
+                        }
+                    </component>
+
                     <!-- 1. Unified Header (Title + Legend + Actions) -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center px-3 py-3 border-bottom bg-white flex-shrink-0 gap-3">
                          <!-- Title (Left) -->
@@ -580,15 +627,20 @@ class AttendanceMatrixWrapper {
                                     </ul>
 
                                     <!-- Status Tab -->
-                                    <div v-if="activeTab==='status'">
+                                    <div v-if="activeTab==='status'" class="scrollable-table-container">
                                         <div class="alert alert-info small py-1 mb-2">
                                             <i class="fa fa-info-circle"></i> <b>{{ __('Payroll Status Conversion') }}:</b> 
                                             {{ __("Standard ERPNext status for payroll (Present, Absent, etc.). You can name the display status (e.g., 'Field Work') but must map it to a standard status.") }}
                                         </div>
-                                        <table class="table table-bordered table-sm">
-                                            <thead><tr><th>{{ __('Status') }}</th><th>{{ __('Payroll Status') }}</th><th>{{ __('Abbr') }}</th><th>{{ __('Color') }} (Hex)</th><th>#</th></tr></thead>
+                                        <table class="table table-bordered table-sm mb-0">
+                                            <thead><tr><th style="width: 30px;"></th><th>{{ __('Status') }}</th><th>{{ __('Payroll Status') }}</th><th>{{ __('Abbr') }}</th><th>{{ __('Color') }} (Hex)</th><th>#</th></tr></thead>
                                             <tbody>
-                                                <tr v-for="(row, idx) in tempSettings.status_map" :key="idx">
+                                                <tr v-for="(row, idx) in tempSettings.status_map" :key="idx" 
+                                                    draggable="true"
+                                                    @dragstart="onDragStart('status_map', idx, $event)"
+                                                    @dragend="onDragEnd"
+                                                    @dragenter="onDragEnter('status_map', idx, $event)">
+                                                    <td class="text-center align-middle drag-handle"><i class="fa fa-bars"></i></td>
                                                     <td><input v-model="row.status" class="form-control form-control-sm"></td>
                                                     <td>
                                                         <select v-model="row.payroll_status" class="form-select form-select-sm">
@@ -605,18 +657,23 @@ class AttendanceMatrixWrapper {
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between p-2 sticky-bottom bg-white border-top">
                                             <button class="btn btn-sm btn-light" @click="tempSettings.status_map.push({status:'', abbreviation:'', color:'#ffffff'})">+ {{ __('Add Row') }}</button>
                                             <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('status_map')">{{ __('Reset / Delete All') }}</button>
                                         </div>
                                     </div>
 
                                     <!-- Shift Tab -->
-                                    <div v-if="activeTab==='shift'">
-                                        <table class="table table-bordered table-sm">
-                                            <thead><tr><th>{{ __('Shift Name') }}</th><th>{{ __('Start') }}</th><th>{{ __('End') }}</th><th>#</th></tr></thead>
+                                    <div v-if="activeTab==='shift'" class="scrollable-table-container">
+                                        <table class="table table-bordered table-sm mb-0">
+                                            <thead><tr><th style="width: 30px;"></th><th>{{ __('Shift Name') }}</th><th>{{ __('Start') }}</th><th>{{ __('End') }}</th><th>#</th></tr></thead>
                                             <tbody>
-                                                <tr v-for="(row, idx) in tempSettings.shift_map" :key="idx">
+                                                <tr v-for="(row, idx) in tempSettings.shift_map" :key="idx"
+                                                    draggable="true"
+                                                    @dragstart="onDragStart('shift_map', idx, $event)"
+                                                    @dragend="onDragEnd"
+                                                    @dragenter="onDragEnter('shift_map', idx, $event)">
+                                                    <td class="text-center align-middle drag-handle"><i class="fa fa-bars"></i></td>
                                                     <td><input v-model="row.shift_name" class="form-control form-control-sm"></td>
                                                     <td><input type="time" v-model="row.start_time" class="form-control form-control-sm"></td>
                                                     <td><input type="time" v-model="row.end_time" class="form-control form-control-sm"></td>
@@ -624,29 +681,34 @@ class AttendanceMatrixWrapper {
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between p-2 sticky-bottom bg-white border-top">
                                             <button class="btn btn-sm btn-light" @click="tempSettings.shift_map.push({shift_name:'', start_time:'', end_time:''})">+ {{ __('Add Row') }}</button>
                                             <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('shift_map')">{{ __('Reset / Delete All') }}</button>
                                         </div>
                                     </div>
                                     
                                     <!-- Overtime Tab -->
-                                    <div v-if="activeTab==='overtime'">
+                                    <div v-if="activeTab==='overtime'" class="scrollable-table-container">
                                         <div class="alert alert-info small py-1 mb-2">
                                             <i class="fa fa-info-circle"></i> <b>{{ __('Overtime Types') }}:</b> 
                                             {{ __("Define overtime codes (e.g. OT1, OT2) and their names. These will be used for shorthand entry.") }}
                                         </div>
-                                        <table class="table table-bordered table-sm">
-                                            <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Abbreviation') }}</th><th>#</th></tr></thead>
+                                        <table class="table table-bordered table-sm mb-0">
+                                            <thead><tr><th style="width: 30px;"></th><th>{{ __('Name') }}</th><th>{{ __('Abbreviation') }}</th><th>#</th></tr></thead>
                                             <tbody>
-                                                <tr v-for="(row, idx) in tempSettings.overtime_types" :key="idx">
+                                                <tr v-for="(row, idx) in tempSettings.overtime_types" :key="idx"
+                                                    draggable="true"
+                                                    @dragstart="onDragStart('overtime_types', idx, $event)"
+                                                    @dragend="onDragEnd"
+                                                    @dragenter="onDragEnter('overtime_types', idx, $event)">
+                                                    <td class="text-center align-middle drag-handle"><i class="fa fa-bars"></i></td>
                                                     <td><input v-model="row.overtime_name" class="form-control form-control-sm" placeholder="e.g. Normal Overtime"></td>
                                                     <td><input v-model="row.abbreviation" class="form-control form-control-sm" placeholder="e.g. OT1"></td>
                                                     <td><button class="btn btn-danger btn-xs" @click="confirmDelete('overtime_types', idx)">X</button></td>
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between p-2 sticky-bottom bg-white border-top">
                                             <button class="btn btn-sm btn-light" @click="tempSettings.overtime_types.push({overtime_name:'', abbreviation:''})">+ {{ __('Add Row') }}</button>
                                             <button class="btn btn-sm btn-danger text-white" @click="confirmDeleteAll('overtime_types')">{{ __('Reset / Delete All') }}</button>
                                         </div>
