@@ -1,3 +1,6 @@
+## v2.0.2
+- **Fix**: Sửa lỗi "Lưu ảo" trong cấu hình. Hệ thống sẽ báo lỗi và ngăn không cho lưu nếu người dùng chưa nhập đủ tên hoặc tên viết tắt cho các mục cấu hình (Trạng thái, Tăng ca), tránh việc dữ liệu bị mất do validate bên server.
+
 ## v2.0.1
 - **Fix**: Sửa lỗi bộ lọc nhân viên (Filter by Employee). Giờ đây search sẽ tìm cả trong ID (name) và Tên nhân viên (employee_name), khắc phục lỗi không tìm thấy người nếu ID khác tên.
 - **UX**: Cải thiện giao diện Cấu hình (Settings):

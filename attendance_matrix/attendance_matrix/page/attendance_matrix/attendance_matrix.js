@@ -248,6 +248,26 @@ class AttendanceMatrixWrapper {
                 },
                 async saveSettings() {
                     // Client-side Validation
+
+                    // 1. Validate Status Map
+                    for (let s of this.tempSettings.status_map) {
+                        if (!s.status || !s.abbreviation) {
+                            frappe.msgprint(__("Error: Please enter both Status Name and Abbreviation for all status rows."));
+                            return;
+                        }
+                    }
+
+                    // 2. Validate Overtime Types
+                    if (this.tempSettings.overtime_types) {
+                        for (let ot of this.tempSettings.overtime_types) {
+                            if (!ot.overtime_name || !ot.abbreviation) {
+                                frappe.msgprint(__("Error: Please enter both Overtime Name and Abbreviation for all overtime type rows."));
+                                return;
+                            }
+                        }
+                    }
+
+                    // 3. Validate Shift MAP
                     for (let s of this.tempSettings.shift_map) {
                         if (!s.shift_name || !s.start_time || !s.end_time) {
                             frappe.msgprint(__("Error: Please enter Shift Name, Start Time and End Time."));
