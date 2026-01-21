@@ -3,6 +3,23 @@
 
 frappe.ui.form.on('Attendance Matrix Settings', {
     refresh: function (frm) {
+        // Show Current Version
+        frappe.call({
+            method: "attendance_matrix.attendance_matrix.utils.updates.check_for_updates",
+            callback: function (r) {
+                if (r.message) {
+                    let msg = `Current Version: <b>${r.message.local_version}</b>`;
+                    if (r.message.update_available) {
+                        msg += ` &bull; <span style="color:red">Update Available: <b>${r.message.remote_version}</b></span>`;
+                        frm.dashboard.set_headline_alert(msg, "red");
+                    } else {
+                        msg += ` &bull; <span style="color:green">Maintained</span>`;
+                        frm.dashboard.set_headline_alert(msg, "green");
+                    }
+                }
+            }
+        });
+
         frm.add_custom_button(__('Check for Updates'), function () {
             frappe.call({
                 method: "attendance_matrix.attendance_matrix.utils.updates.check_for_updates",

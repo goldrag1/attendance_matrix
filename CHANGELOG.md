@@ -1,3 +1,6 @@
+## v2.0.9
+- **Settings**: Hiển thị phiên bản hiện tại (Current Version) và trạng thái cập nhật (Update Available) ngay trên đầu trang **Attendance Matrix Settings**. Giúp người quản trị dễ dàng theo dõi và cập nhật ứng dụng kể cả khi trang chính bị lỗi.
+
 ## v2.0.8
 - **Hotfix**: Sửa lỗi "Trắng trang" do xung đột khi load file CSS có chứa query string. Vui lòng **Hard Reload (Ctrl + Shift + R)** để thấy thay đổi mới nhất về scrollbar.
 
