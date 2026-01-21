@@ -952,14 +952,15 @@ def save_attendance_settings(status_map, shift_map, overtime_types=None):
                 seen_keys.add(k)
                 unique_inputs.append(row)
             elif not k:
-                # Allow empty keys? No, skip empty to prevent issues
                 pass
                 
         # 2. CLEAR ALL existing rows
         doc.set(doc_list_name, [])
         
-        # 3. Insert Unique Rows
-        for row in unique_inputs:
+        # 3. Insert Unique Rows with Explicit Index
+        for i, row in enumerate(unique_inputs):
+            # Explicitly set idx to ensure order is persisted
+            row['idx'] = i + 1
             doc.append(doc_list_name, row)
 
     # Execute Sync
@@ -967,11 +968,6 @@ def save_attendance_settings(status_map, shift_map, overtime_types=None):
     sync_force_clean("shift_map", shift_map, "shift_name")
     if overtime_types_list:
         sync_force_clean("overtime_types", overtime_types_list, "abbreviation")
-    
-    doc.save()
-    # Execute Sync
-    sync_force_clean("status_map", status_map, "abbreviation")
-    sync_force_clean("shift_map", shift_map, "shift_name")
 
     # --- SMART SCHEMA UPDATE: Auto-add Status options to Attendance DocType ---
     try:
@@ -1005,7 +1001,7 @@ def save_attendance_settings(status_map, shift_map, overtime_types=None):
                 "value": updated_options_str,
                 "doctype_or_field": "DocField"
             })
-            frappe.msgprint(f"Đã tự động thêm các trạng thái mới vào hệ thống: {', '.join(added_options)}")
+            # frappe.msgprint(f"Đã tự động thêm các trạng thái mới vào hệ thống: {', '.join(added_options)}")
             
             # Clear cache to apply immediately
             frappe.clear_cache(doctype="Attendance")

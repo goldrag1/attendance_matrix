@@ -1,3 +1,6 @@
+## v2.0.15
+- **Settings**: Sửa lỗi không lưu vị trí sắp xếp trong bảng Cấu hình. Bây giờ hệ thống sẽ ghi nhớ chính xác thứ tự bạn đã kéo thả.
+
 ## v2.0.14
 - **System**: Tắt các patch cũ (v1.8.0, v1.8.1) gây lỗi ModuleNotFoundError khi chạy migrate trên một số môi trường server.
 
