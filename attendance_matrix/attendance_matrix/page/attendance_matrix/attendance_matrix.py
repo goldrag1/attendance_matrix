@@ -408,6 +408,9 @@ def save_matrix_bulk(data, mode="attendance"):
 
                 if raw_status:
                     # simplistic parser: "OT1: 2; OT2: 3"
+                    # DEBUG LOG
+                    frappe.log_error(f"OT Parse Start. Raw: {raw_status}, OT Map Keys: {list(ot_types_map.keys())}, Settings Count: {len(settings.overtime_types)}", "Matrix OT Debug")
+                    
                     parts = raw_status.split(';')
                     for part in parts:
                         if ':' in part:
@@ -428,6 +431,10 @@ def save_matrix_bulk(data, mode="attendance"):
                             # For now, strict syntax or simplistic fallback?
                             # Design says: "Viet tat kieu lam them 1: so luong 1"
                             # Let's support just "number" if only 1 OT type is configured
+                            
+                            # DEBUG Single Case
+                            frappe.log_error(f"Single OT Case: {part}, Config Count: {len(settings.overtime_types)}", "Matrix OT Debug")
+
                             if len(settings.overtime_types) == 1:
                                 try:
                                     qty = float(part.strip())
@@ -435,6 +442,38 @@ def save_matrix_bulk(data, mode="attendance"):
                                     total_hours += qty
                                 except:
                                     pass
+                            elif len(settings.overtime_types) > 1 and part.strip().replace('.','',1).isdigit():
+                                # Ambiguous: User typed "2" but there are 2 OT types. Which one?
+                                # Default to first one? Or Ignore?
+                                # Let's try to default to the FIRST configured type as a fallback convenience
+                                try:
+                                    qty = float(part.strip())
+                                    parsed_entries.append({"overtime_type": settings.overtime_types[0].overtime_name, "hours": qty})
+                                    total_hours += qty
+                                except:
+                                   pass
+                            elif ' ' in part.strip():
+                                # Handle Space Separator "OT1 2.5" or "HP 1"
+                                # Try splitting by last space to separate Abbr and Qty
+                                try:
+                                    p_abbr, p_qty = part.strip().rsplit(' ', 1)
+                                    p_abbr = p_abbr.strip()
+                                    p_qty = float(p_qty.strip())
+                                    
+                                    # Case insensitive lookup
+                                    found_type = None
+                                    for k, v in ot_types_map.items():
+                                        if k.lower() == p_abbr.lower():
+                                            found_type = v
+                                            break
+                                    
+                                    if found_type:
+                                        parsed_entries.append({"overtime_type": found_type, "hours": p_qty})
+                                        total_hours += p_qty
+                                    else:
+                                        frappe.log_error(f"Space Parse Failed: Abbr '{p_abbr}' not found in {list(ot_types_map.keys())}", "Matrix OT Debug")
+                                except Exception as e:
+                                    frappe.log_error(f"Space Parse Error: {str(e)}", "Matrix OT Debug")
                 
                 if existing:
                     doc = frappe.get_doc("Attendance", existing)

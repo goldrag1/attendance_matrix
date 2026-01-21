@@ -1,3 +1,12 @@
+## v2.0.18
+- **Overtime Fix**: Hỗ trợ nhập liệu Tăng ca dùng dấu cách thay vì dấu hai chấm (Ví dụ: "HP 1" thay vì "HP: 1").
+
+## v2.0.17
+- **Debug**: Bật tính năng ghi log chi tiết khi lưu Tăng ca để kiểm tra lỗi mất dữ liệu. (Xem trong Error Log).
+
+## v2.0.16
+- **Overtime**: Cải thiện logic nhập liệu Tăng ca. Bây giờ nếu bạn chỉ nhập số (ví dụ: "2") mà không cần gõ mã (ví dụ: "OT1: 2"), hệ thống sẽ tự động hiểu là loại tăng ca đầu tiên trong cấu hình.
+
 ## v2.0.15
 - **Settings**: Sửa lỗi không lưu vị trí sắp xếp trong bảng Cấu hình. Bây giờ hệ thống sẽ ghi nhớ chính xác thứ tự bạn đã kéo thả.
 
