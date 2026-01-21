@@ -1,3 +1,7 @@
+## v2.0.4
+- **UI/UX**: Fix triệt để lỗi "Double Scrollbar" (2 thanh cuộn) bằng cách ẩn thanh cuộn của trình duyệt (`overflow: hidden`) khi đang ở trang chấm công.
+- **UI/UX**: Tinh chỉnh chiều cao bảng chấm công (`100vh - 60px`) để vừa khít với header của hệ thống, loại bỏ khoảng trắng thừa.
+
 ## v2.0.3
 - **UI/UX**: Fix lỗi giao diện "tràn màn hình" (Sidebar bị che khuất) ảnh hưởng tới các trang khác của ERPNext.
 - **UI/UX**: Tối ưu hóa chiều cao bảng chấm công, loại bỏ scrollbar thừa của trình duyệt, giúp thao tác mượt mà hơn.

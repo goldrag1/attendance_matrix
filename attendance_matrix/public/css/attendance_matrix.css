@@ -88,6 +88,11 @@
 }
 
 /* Force Full Width & Height on Frappe Page Containers ONLY for this page */
+body[data-route="attendance-matrix"] {
+    overflow: hidden !important;
+    /* KILL THE SCROLLBAR */
+}
+
 body[data-route="attendance-matrix"] .layout-main-section {
     max-width: 100% !important;
     padding-left: 0 !important;
@@ -108,8 +113,8 @@ body[data-route="attendance-matrix"] .content {
 /* Ensure our app takes full remaining height and NO double scrollbars */
 .attendance-matrix-app {
     width: 100%;
-    height: calc(100vh - 45px);
-    /* Navbar is approx 45px */
+    height: calc(100vh - 60px);
+    /* Navbar is approx 60px, increased from 45px */
     overflow: hidden;
     /* Prevent outer scrollbar */
     display: flex;
