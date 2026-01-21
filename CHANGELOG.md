@@ -1,3 +1,6 @@
+## v2.0.7
+- **System**: Force reload file CSS để áp dụng thay đổi thanh cuộn ngay lập tức (tránh cache trình duyệt).
+
 ## v2.0.6
 - **UI/UX**: Tiếp tục tăng kích thước thanh cuộn lên **35px** (theo yêu cầu) để tối đa hóa khả năng tương tác.
 
