@@ -1,3 +1,6 @@
+## v2.0.13
+- **Fix**: Sửa lỗi "Lưu ảo" trong chế độ Tăng ca (Overtime). Hệ thống giờ đây sẽ bỏ qua các validation chặt chẽ của Attendance khi lưu log tăng ca, đảm bảo dữ liệu được ghi nhận thành công vào Database.
+
 ## v2.0.12
 - **Settings**: Sửa lỗi giao diện nút "Update to v..." không hiển thị trong bản cập nhật trước. Giờ đây nút đỏ sẽ xuất hiện đúng như mô tả khi có bản cập nhật mới.
 

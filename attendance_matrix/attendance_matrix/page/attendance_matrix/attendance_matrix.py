@@ -277,6 +277,9 @@ def save_matrix_bulk(data, mode="attendance"):
 
     results = {"success": [], "errors": []}
     
+    # DEBUG LOGGING (Temporary for silent save investigation)
+    # frappe.log_error(f"Matrix Save Data: {data}, Mode: {mode}", "Attendance Matrix Save Debug")
+    
     for item in changes:
         try:
             employee = item.get("employee")
@@ -454,6 +457,7 @@ def save_matrix_bulk(data, mode="attendance"):
                             "custom_overtime_hours": total_hours, # New Total Field
                             "docstatus": 1
                         })
+                        doc.flags.ignore_validate = True
                         doc.insert(ignore_permissions=True)
                         doc.submit()
                         results["success"].append(f"Updated (Re-created) Overtime for {employee} on {date}")
@@ -465,6 +469,7 @@ def save_matrix_bulk(data, mode="attendance"):
                         
                         doc.custom_overtime_hours = total_hours # New Total Field
 
+                        doc.flags.ignore_validate = True
                         doc.save(ignore_permissions=True)
                         # Auto-submit draft? User might want that.
                         doc.submit()
@@ -482,6 +487,7 @@ def save_matrix_bulk(data, mode="attendance"):
                             "custom_overtime_hours": total_hours, # New Total Field
                             "docstatus": 1
                         })
+                        doc.flags.ignore_validate = True
                         doc.insert(ignore_permissions=True)
                         doc.submit() # Auto-submit
                         results["success"].append(f"Created Attendance (Present) with OT for {employee} on {date}")
