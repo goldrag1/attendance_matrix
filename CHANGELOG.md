@@ -1,3 +1,6 @@
+## v2.0.8
+- **Hotfix**: Sửa lỗi "Trắng trang" do xung đột khi load file CSS có chứa query string. Vui lòng **Hard Reload (Ctrl + Shift + R)** để thấy thay đổi mới nhất về scrollbar.
+
 ## v2.0.7
 - **System**: Force reload file CSS để áp dụng thay đổi thanh cuộn ngay lập tức (tránh cache trình duyệt).
 

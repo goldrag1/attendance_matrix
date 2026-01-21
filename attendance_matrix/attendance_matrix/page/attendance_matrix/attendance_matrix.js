@@ -26,7 +26,7 @@ class AttendanceMatrixWrapper {
             "/assets/attendance_matrix/js/libs/ag-grid-community.min.js",
             "/assets/attendance_matrix/css/libs/ag-grid-custom.css",
             "/assets/attendance_matrix/css/libs/ag-theme-alpine-custom.css",
-            "/assets/attendance_matrix/css/attendance_matrix.css?v=2.0.7"
+            "/assets/attendance_matrix/css/attendance_matrix.css"
         ];
 
         frappe.require(assets, () => {
