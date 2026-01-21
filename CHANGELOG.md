@@ -1,3 +1,6 @@
+## v2.0.10
+- **Settings**: Thêm nút **"Update to v..."** màu đỏ nổi bật ngay trên đầu trang khi phát hiện bản cập nhật mới. Người dùng chỉ cần bấm 1 click để cập nhật, không cần tìm kiếm nút ẩn.
+
 ## v2.0.9
 - **Settings**: Hiển thị phiên bản hiện tại (Current Version) và trạng thái cập nhật (Update Available) ngay trên đầu trang **Attendance Matrix Settings**. Giúp người quản trị dễ dàng theo dõi và cập nhật ứng dụng kể cả khi trang chính bị lỗi.
 
