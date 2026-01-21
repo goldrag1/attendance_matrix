@@ -1,3 +1,6 @@
+## v2.0.5
+- **UI/UX**: Cải thiện thanh cuộn (Scrollbar) cho to rõ hơn (20px) và đậm màu hơn (#888) theo yêu cầu, giúp thao tác kéo thả dễ dàng hơn.
+
 ## v2.0.4
 - **UI/UX**: Fix triệt để lỗi "Double Scrollbar" (2 thanh cuộn) bằng cách ẩn thanh cuộn của trình duyệt (`overflow: hidden`) khi đang ở trang chấm công.
 - **UI/UX**: Tinh chỉnh chiều cao bảng chấm công (`100vh - 60px`) để vừa khít với header của hệ thống, loại bỏ khoảng trắng thừa.
