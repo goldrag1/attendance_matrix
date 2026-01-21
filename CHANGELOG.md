@@ -1,3 +1,6 @@
+## v2.0.6
+- **UI/UX**: Tiếp tục tăng kích thước thanh cuộn lên **35px** (theo yêu cầu) để tối đa hóa khả năng tương tác.
+
 ## v2.0.5
 - **UI/UX**: Cải thiện thanh cuộn (Scrollbar) cho to rõ hơn (20px) và đậm màu hơn (#888) theo yêu cầu, giúp thao tác kéo thả dễ dàng hơn.
 

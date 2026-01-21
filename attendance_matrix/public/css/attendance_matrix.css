@@ -67,8 +67,8 @@
 /* --- SCROLLBAR CUSTOMIZATION --- */
 /* Target AG Grid specifically and global scrollbars if needed */
 ::-webkit-scrollbar {
-    width: 20px;
-    height: 20px;
+    width: 35px;
+    height: 35px;
 }
 
 ::-webkit-scrollbar-track {
