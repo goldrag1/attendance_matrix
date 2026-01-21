@@ -409,7 +409,7 @@ def save_matrix_bulk(data, mode="attendance"):
                 if raw_status:
                     # simplistic parser: "OT1: 2; OT2: 3"
                     # DEBUG LOG
-                    frappe.log_error(f"OT Parse Start. Raw: {raw_status}, OT Map Keys: {list(ot_types_map.keys())}, Settings Count: {len(settings.overtime_types)}", "Matrix OT Debug")
+                    # frappe.log_error(f"OT Parse Start. Raw: {raw_status}, OT Map Keys: {list(ot_types_map.keys())}, Settings Count: {len(settings.overtime_types)}", "Matrix OT Debug")
                     
                     parts = raw_status.split(';')
                     for part in parts:
@@ -433,7 +433,7 @@ def save_matrix_bulk(data, mode="attendance"):
                             # Let's support just "number" if only 1 OT type is configured
                             
                             # DEBUG Single Case
-                            frappe.log_error(f"Single OT Case: {part}, Config Count: {len(settings.overtime_types)}", "Matrix OT Debug")
+                            # frappe.log_error(f"Single OT Case: {part}, Config Count: {len(settings.overtime_types)}", "Matrix OT Debug")
 
                             if len(settings.overtime_types) == 1:
                                 try:
@@ -471,9 +471,11 @@ def save_matrix_bulk(data, mode="attendance"):
                                         parsed_entries.append({"overtime_type": found_type, "hours": p_qty})
                                         total_hours += p_qty
                                     else:
-                                        frappe.log_error(f"Space Parse Failed: Abbr '{p_abbr}' not found in {list(ot_types_map.keys())}", "Matrix OT Debug")
+                                        pass
+                                        # frappe.log_error(f"Space Parse Failed: Abbr '{p_abbr}' not found in {list(ot_types_map.keys())}", "Matrix OT Debug")
                                 except Exception as e:
-                                    frappe.log_error(f"Space Parse Error: {str(e)}", "Matrix OT Debug")
+                                    pass
+                                    # frappe.log_error(f"Space Parse Error: {str(e)}", "Matrix OT Debug")
                 
                 if existing:
                     doc = frappe.get_doc("Attendance", existing)

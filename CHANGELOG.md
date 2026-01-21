@@ -1,3 +1,6 @@
+## v2.0.19
+- **System**: Tắt chế độ ghi log debug để làm sạch hệ thống sau khi đã fix xong lỗi nhập liệu Tăng ca.
+
 ## v2.0.18
 - **Overtime Fix**: Hỗ trợ nhập liệu Tăng ca dùng dấu cách thay vì dấu hai chấm (Ví dụ: "HP 1" thay vì "HP: 1").
 
