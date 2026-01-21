@@ -1,3 +1,6 @@
+## v2.0.12
+- **Settings**: Sửa lỗi giao diện nút "Update to v..." không hiển thị trong bản cập nhật trước. Giờ đây nút đỏ sẽ xuất hiện đúng như mô tả khi có bản cập nhật mới.
+
 ## v2.0.11
 - **System**: Cải thiện logic kiểm tra cập nhật. Hệ thống giờ đây sẽ so sánh phiên bản một cách thông minh (Semantic Versioning), tránh trường hợp báo "Có bản cập nhật" khi phiên bản local thực tế mới hơn remote (do cache GitHub chưa kịp cập nhật).
 
