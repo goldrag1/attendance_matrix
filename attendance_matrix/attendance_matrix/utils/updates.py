@@ -38,8 +38,15 @@ def check_for_updates():
         except Exception as e:
              return {"error": _("Network Connection Error: {0}").format(str(e))}
 
-        # 3. Compare
-        if local_ver != remote_ver:
+        def parse_version(v):
+            try:
+                # Remove 'v', split by '.', map to int
+                return tuple(map(int, v.lower().replace('v', '').split('.')))
+            except:
+                return (0, 0, 0)
+
+        # 3. Compare with Semantic Versioning logic
+        if parse_version(remote_ver) > parse_version(local_ver):
             # Fetch Changelog
             changelog = _("Cannot load change history.")
             try:

@@ -1,3 +1,6 @@
+## v2.0.11
+- **System**: Cải thiện logic kiểm tra cập nhật. Hệ thống giờ đây sẽ so sánh phiên bản một cách thông minh (Semantic Versioning), tránh trường hợp báo "Có bản cập nhật" khi phiên bản local thực tế mới hơn remote (do cache GitHub chưa kịp cập nhật).
+
 ## v2.0.10
 - **Settings**: Thêm nút **"Update to v..."** màu đỏ nổi bật ngay trên đầu trang khi phát hiện bản cập nhật mới. Người dùng chỉ cần bấm 1 click để cập nhật, không cần tìm kiếm nút ẩn.
 
