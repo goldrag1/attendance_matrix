@@ -1,3 +1,6 @@
+## v2.0.14
+- **System**: Tắt các patch cũ (v1.8.0, v1.8.1) gây lỗi ModuleNotFoundError khi chạy migrate trên một số môi trường server.
+
 ## v2.0.13
 - **Fix**: Sửa lỗi "Lưu ảo" trong chế độ Tăng ca (Overtime). Hệ thống giờ đây sẽ bỏ qua các validation chặt chẽ của Attendance khi lưu log tăng ca, đảm bảo dữ liệu được ghi nhận thành công vào Database.
 
