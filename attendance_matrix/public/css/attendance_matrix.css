@@ -87,26 +87,39 @@
     background: #888;
 }
 
-/* Force Full Width & Height on Frappe Page Containers */
-.layout-main-section {
+/* Force Full Width & Height on Frappe Page Containers ONLY for this page */
+body[data-route="attendance-matrix"] .layout-main-section {
     max-width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     padding-top: 0 !important;
 }
 
-.page-body {
+body[data-route="attendance-matrix"] .page-body {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-.content {
+body[data-route="attendance-matrix"] .content {
     max-width: 100% !important;
 }
 
-/* Ensure our app takes full remaining height */
+/* Ensure our app takes full remaining height and NO double scrollbars */
 .attendance-matrix-app {
     width: 100%;
-    /* Height is calculated in inline style, but we can enforce flex here potentially */
+    height: calc(100vh - 45px);
+    /* Navbar is approx 45px */
+    overflow: hidden;
+    /* Prevent outer scrollbar */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure the grid container takes remaining space */
+#attendance-grid {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    /* Crucial for flex item scrolling */
 }

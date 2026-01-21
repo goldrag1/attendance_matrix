@@ -1,3 +1,7 @@
+## v2.0.3
+- **UI/UX**: Fix lỗi giao diện "tràn màn hình" (Sidebar bị che khuất) ảnh hưởng tới các trang khác của ERPNext.
+- **UI/UX**: Tối ưu hóa chiều cao bảng chấm công, loại bỏ scrollbar thừa của trình duyệt, giúp thao tác mượt mà hơn.
+
 ## v2.0.2
 - **Fix**: Sửa lỗi "Lưu ảo" trong cấu hình. Hệ thống sẽ báo lỗi và ngăn không cho lưu nếu người dùng chưa nhập đủ tên hoặc tên viết tắt cho các mục cấu hình (Trạng thái, Tăng ca), tránh việc dữ liệu bị mất do validate bên server.
 

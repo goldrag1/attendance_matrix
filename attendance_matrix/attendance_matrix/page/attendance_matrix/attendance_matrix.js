@@ -46,8 +46,8 @@ class AttendanceMatrixWrapper {
         let storeMod, gridMod;
 
         // Optimize Screen Real Estate
-        $('.page-body').css({ 'max-width': '100%', 'margin': '0', 'padding': '0' });
-        $('.layout-main-section').css({ 'max-width': '100%', 'padding': '0' });
+        // NOTE: We now use CSS scoped to body[data-route="attendance-matrix"] in attendance_matrix.css
+        // This prevents side effects on other pages.
         $('footer').hide(); // Hide footer if present to maximize height
 
         try {
@@ -403,7 +403,7 @@ class AttendanceMatrixWrapper {
                 }
             },
             template: `
-                <div class="attendance-matrix-app d-flex flex-column bg-white" style="height: calc(100vh - 65px); overflow: hidden;">
+                <div class="attendance-matrix-app d-flex flex-column bg-white">
                     <component :is="'style'">
                         .scrollable-table-container {
                             max-height: 60vh;
