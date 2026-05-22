@@ -1,3 +1,6 @@
+## v2.0.20
+- **License**: Gỡ bỏ toàn bộ cơ chế kiểm tra giấy phép qua server từ xa. App hoạt động độc lập, không gọi đến server bên ngoài.
+
 ## v2.0.19
 - **System**: Tắt chế độ ghi log debug để làm sạch hệ thống sau khi đã fix xong lỗi nhập liệu Tăng ca.
 

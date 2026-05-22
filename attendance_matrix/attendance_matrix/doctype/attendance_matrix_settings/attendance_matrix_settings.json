@@ -12,13 +12,6 @@
     ],
     "fields": [
         {
-            "fieldname": "license_server_url",
-            "fieldtype": "Data",
-            "label": "License Server URL",
-            "default": "https://erp.minionapp.fun",
-            "hidden": 1
-        },
-        {
             "fieldname": "status_settings_section",
             "fieldtype": "Section Break",
             "label": "Cấu hình Trạng thái Chấm công"
