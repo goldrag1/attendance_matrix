@@ -1,3 +1,6 @@
+## v2.0.21
+- **Chấm theo giờ**: Thêm chế độ "Chấm theo giờ" (cạnh Điểm danh, Tăng ca) để nhập số giờ làm mỗi ngày, lưu độc lập trong Nhật ký chấm công theo giờ (không ảnh hưởng công / giờ chuẩn / lương). Thêm cột "Tổng chấm theo giờ" hiển thị ở cả chế độ Điểm danh và Chấm theo giờ. Xuất Excel có thêm sheet riêng cho giờ từng ngày.
+
 ## v2.0.20
 - **License**: Gỡ bỏ toàn bộ cơ chế kiểm tra giấy phép qua server từ xa. App hoạt động độc lập, không gọi đến server bên ngoài.
 

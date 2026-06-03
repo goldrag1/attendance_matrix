@@ -13,6 +13,7 @@ export default {
         },
         employees: [],
         attendance: {}, // { employee_date: { status, hours, ... }}
+        hours_log: {}, // { employee_date: number } — independent hourly-tracking store (Attendance Hours Log)
         holidays: [],
         meta: {}, // first_day, last_day
         filter_options: {
@@ -32,7 +33,7 @@ export default {
         saving: false,
         dirty: new Set(), // Track changed employees
         showAbbreviations: true, // Toggle for Abbreviation Mode
-        viewMode: "attendance" // 'attendance' or 'overtime'
+        viewMode: "attendance" // 'attendance' | 'overtime' | 'hours'
     }),
 
     async init() {
@@ -78,6 +79,7 @@ export default {
             this.state.attendance = data.attendance || {};
             this.state.holidays = data.holidays || [];
             this.state.settings = data.settings || { status_map: [], shift_map: [], overtime_types: [] }; // settings
+            this.state.hours_log = data.hours_log || {}; // independent hourly-tracking data
             // Safety Init
             if (!this.state.settings.overtime_types) this.state.settings.overtime_types = [];
             this.state.permission_info = data.permission_info || null; // Permission info
@@ -133,6 +135,9 @@ export default {
                     // Let's assume the Grid writes to 'overtime_text' or re-uses 'status' if we are careful?
                     // Ideally Grid writes to 'overtime_text'.
                     statusVal = record.overtime_text || "";
+                } else if (mode === 'hours') {
+                    // In Hours Mode, the grid writes the typed number to 'hours_input'.
+                    statusVal = (record.hours_input === undefined || record.hours_input === null) ? "" : record.hours_input;
                 }
 
                 changes.push({

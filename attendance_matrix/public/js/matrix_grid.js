@@ -84,6 +84,8 @@ export default {
         if (!meta.first_day) return [];
 
         const viewMode = store.state.viewMode || 'attendance';
+        const isOvertime = viewMode === 'overtime';
+        const isHours = viewMode === 'hours';
 
         // Fixed Columns
         const cols = [
@@ -280,7 +282,7 @@ export default {
                 field: dateStr,
                 width: 70, // Slightly wider for OT text
                 headerClass: headerClass,
-                cellClass: viewMode === 'overtime' ? cellClass : (params) => {
+                cellClass: (isOvertime || isHours) ? cellClass : (params) => {
                     // ATTENDANCE MODE: Existing Color Logic
                     const val = params.value;
                     if (val) {
@@ -292,9 +294,15 @@ export default {
                     }
                     return cellClass;
                 },
-                cellStyle: viewMode === 'overtime' ? (params) => {
+                cellStyle: isOvertime ? (params) => {
                     // OVERTIME MODE: Just visual feedback for non-empty
                     if (params.value) return { 'background-color': '#e3f2fd', 'font-weight': 'bold' };
+                    return null;
+                } : isHours ? (params) => {
+                    // HOURS MODE: light tint for filled cells
+                    if (params.value !== '' && params.value !== null && params.value !== undefined) {
+                        return { 'background-color': '#f1f8e9', 'font-weight': 'bold', 'text-align': 'center' };
+                    }
                     return null;
                 } : (params) => {
                     // ATTENDANCE MODE: Existing Color Logic
@@ -312,7 +320,7 @@ export default {
                     return null;
                 },
                 editable: true,
-                cellRenderer: viewMode === 'overtime' ? null : params => {
+                cellRenderer: (isOvertime || isHours) ? null : params => {
                     const val = params.value;
                     if (!val) return "";
                     // Abbreviation Logic
@@ -328,6 +336,15 @@ export default {
                 valueGetter: (params) => {
                     const key = `${params.data.name}_${dateStr}`;
                     const record = store.state.attendance[key];
+
+                    if (isHours) {
+                        // HOURS MODE: prefer in-progress edit (hours_input), else canonical hours_log
+                        if (record && Object.prototype.hasOwnProperty.call(record, 'hours_input')) {
+                            return (record.hours_input === null || record.hours_input === undefined) ? "" : record.hours_input;
+                        }
+                        const v = (store.state.hours_log || {})[key];
+                        return (v === undefined || v === null) ? "" : v;
+                    }
 
                     if (viewMode === 'overtime') {
                         // Construct String from record.overtime array
@@ -362,7 +379,17 @@ export default {
 
                     let finalVal = newVal ? newVal.trim() : "";
 
-                    if (viewMode === 'overtime') {
+                    if (isHours) {
+                        // HOURS SETTER: store a clamped number (or '' to clear) in hours_input
+                        let num = "";
+                        if (finalVal !== "") {
+                            const parsed = parseFloat(finalVal);
+                            if (!isNaN(parsed)) {
+                                num = parsed < 0 ? 0 : (parsed > 24 ? 24 : parsed);
+                            }
+                        }
+                        store.updateCell(params.data.name, dateStr, 'hours_input', num);
+                    } else if (viewMode === 'overtime') {
                         // OVERTIME SETTER
                         // 1. Optimistic Update of proper structure
                         const key = `${params.data.name}_${dateStr}`;
@@ -493,8 +520,10 @@ export default {
 
                     // Force refresh to show formatted value
                     params.api.refreshCells({ rowNodes: [params.node], columns: [params.column] });
-                    // Also refresh summary columns potentially?
-                    // params.api.refreshCells({ rowNodes: [params.node] }); // Refresh whole row
+                    // HOURS MODE: refresh whole row so the "Tổng chấm theo giờ" summary updates live
+                    if (isHours) {
+                        params.api.refreshCells({ rowNodes: [params.node], force: true });
+                    }
 
                     // AUTO-SAVE: Trigger save immediately
                     store.save();
@@ -567,7 +596,7 @@ export default {
                 });
             }
 
-        } else {
+        } else if (!isHours) {
             // ATTENDANCE SUMMARY
             const statusMap = store.state.settings.status_map || [];
 
@@ -636,6 +665,22 @@ export default {
             }
         }
 
+        // "Tổng chấm theo giờ" — shown in BOTH Điểm danh (attendance) and Chấm theo giờ (hours) modes, not Overtime.
+        if (!isOvertime) {
+            cols.push({
+                headerName: __("Tổng chấm theo giờ"),
+                headerTooltip: __("Tổng số giờ chấm theo giờ trong tháng"),
+                width: 110,
+                valueGetter: p => this.sumHours(p.data.name),
+                cellStyle: {
+                    'background-color': '#e8f5e9',
+                    'text-align': 'center',
+                    'font-weight': 'bold',
+                    'border-left': '1px solid #ddd'
+                }
+            });
+        }
+
         return cols;
     },
 
@@ -685,6 +730,36 @@ export default {
             }
         }
         return parseFloat(total.toFixed(2)); // Nice formatting
+    },
+
+    sumHours(employee) {
+        // Sum the monthly hourly-tracking total for one employee.
+        // Prefer in-progress edits (hours_input) over canonical hours_log so the total updates live.
+        let total = 0.0;
+        const meta = store.state.meta;
+        if (!meta.first_day) return 0;
+        const start = new Date(meta.first_day);
+        const hoursLog = store.state.hours_log || {};
+
+        for (let i = 0; i < meta.days_in_month; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            const key = `${employee}_${dateStr}`;
+
+            let v;
+            const record = store.state.attendance[key];
+            if (record && Object.prototype.hasOwnProperty.call(record, 'hours_input')) {
+                v = parseFloat(record.hours_input);
+            } else {
+                v = parseFloat(hoursLog[key]);
+            }
+            if (!isNaN(v)) total += v;
+        }
+        return parseFloat(total.toFixed(2));
     },
 
     onCellValueChanged(event) {

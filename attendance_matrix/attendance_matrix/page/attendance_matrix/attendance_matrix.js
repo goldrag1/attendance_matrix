@@ -451,12 +451,18 @@ class AttendanceMatrixWrapper {
                                  @click="store.viewMode='overtime'; redrawGrid()">
                                  {{ __('Overtime') }}
                              </button>
+                             <button class="btn btn-sm px-3 fw-bold"
+                                 :class="store.viewMode==='hours' ? 'btn-success shadow-sm text-white' : 'text-muted btn-light border-0'"
+                                 style="min-width: 110px; transition: all 0.2s;"
+                                 @click="store.viewMode='hours'; redrawGrid()">
+                                 {{ __('Chấm theo giờ') }}
+                             </button>
                          </div>
 
                          <!-- Interactive Area (Right: Legend + Buttons) -->
                          <div class="d-flex align-items-center gap-3 ms-auto" style="min-width: 0;">
                              <!-- Legend (Attendance) -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-if="store.viewMode !== 'overtime'">
+                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-if="store.viewMode === 'attendance'">
                                 <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Code') }}:</span>
                                 <div class="d-flex gap-2 align-items-center">
                                     <div v-for="s in store.settings.status_map" :key="s.abbreviation" class="d-flex align-items-center gap-1">
@@ -471,7 +477,7 @@ class AttendanceMatrixWrapper {
                              </div>
 
                              <!-- Legend (Overtime) -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else>
+                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else-if="store.viewMode === 'overtime'">
                                 <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Overtime Codes') }}:</span>
                                 <div class="d-flex gap-3 align-items-center">
                                     <div v-for="ot in store.settings.overtime_types" :key="ot.abbreviation" class="d-flex align-items-center gap-1">
@@ -484,6 +490,11 @@ class AttendanceMatrixWrapper {
                                         ({{ __('No types defined') }})
                                     </span>
                                 </div>
+                             </div>
+
+                             <!-- Legend (Hours) -->
+                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else>
+                                <span class="text-muted small fw-bold">{{ __('Nhập số giờ làm mỗi ngày (vd 8 hoặc 6.5)') }}</span>
                              </div>
                              <div class="vr d-none d-xl-block mx-2"></div>
 

@@ -201,6 +201,20 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
                     "hours": log.hours
                 })
 
+    # 3.2 Fetch Hourly-tracking Logs (independent store — separate DocType, does NOT touch Attendance)
+    hours_log = {}
+    if employees and frappe.db.table_exists("Attendance Hours Log"):
+        emp_names = [e.name for e in employees]
+        hours_rows = frappe.get_all("Attendance Hours Log",
+            fields=["employee", "attendance_date", "hours"],
+            filters={
+                "employee": ["in", emp_names],
+                "attendance_date": ["between", [first_day, last_day]]
+            }
+        )
+        for h in hours_rows:
+            hours_log[f"{h.employee}_{h.attendance_date}"] = h.hours
+
     # 4. Fetch Meta for Filters
     all_companies = frappe.get_all("Company", fields=["name"], order_by="name asc")
     all_departments = frappe.get_all("Department", fields=["name", "company"], order_by="name asc")
@@ -234,6 +248,7 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
     return {
         "employees": employees,
         "attendance": attendance,
+        "hours_log": hours_log,
         "holidays": holidays,
         "meta": {
             "first_day": str(first_day),
@@ -524,7 +539,48 @@ def save_matrix_bulk(data, mode="attendance"):
                         doc.insert(ignore_permissions=True)
                         doc.submit() # Auto-submit
                         results["success"].append(f"Created Attendance (Present) with OT for {employee} on {date}")
-                
+
+            elif mode == "hours":
+                # HOURS LOGIC — independent store (Attendance Hours Log).
+                # Does NOT touch Attendance / working_hours / status. Two parallel streams.
+                existing_log = frappe.db.exists("Attendance Hours Log", {
+                    "employee": employee,
+                    "attendance_date": date
+                })
+
+                hours_val = None
+                if raw_status not in (None, ""):
+                    try:
+                        hours_val = float(str(raw_status).strip())
+                    except Exception:
+                        hours_val = None
+
+                # Empty / invalid / non-positive -> remove the day's hours (no record)
+                if hours_val is None or hours_val <= 0:
+                    if existing_log:
+                        frappe.delete_doc("Attendance Hours Log", existing_log, ignore_permissions=True)
+                        results["success"].append(f"Deleted hours {employee} on {date}")
+                    continue
+
+                # Clamp to a sane day range (0..24)
+                if hours_val > 24:
+                    hours_val = 24
+
+                if existing_log:
+                    log = frappe.get_doc("Attendance Hours Log", existing_log)
+                    log.hours = hours_val
+                    log.save(ignore_permissions=True)
+                    results["success"].append(f"Updated hours {employee} on {date}")
+                else:
+                    log = frappe.get_doc({
+                        "doctype": "Attendance Hours Log",
+                        "employee": employee,
+                        "attendance_date": date,
+                        "hours": hours_val
+                    })
+                    log.insert(ignore_permissions=True)
+                    results["success"].append(f"Created hours {employee} on {date}")
+
         except Exception as e:
             frappe.log_error(f"Error saving matrix for {item}: {str(e)}")
             results["errors"].append(f"Error for {item.get('employee')} on {item.get('date')}: {str(e)}")
@@ -543,7 +599,9 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
     data = get_matrix_data(month, year, department, company, employee, shift)
     meta = data['meta']
     data_map = data['attendance'] # { "Emp_Date": {status: "...", hours: ...} }
-    
+    hours_log = data.get('hours_log', {}) # { "Emp_Date": number } — independent hourly-tracking store
+    add_hours_total = mode in ("attendance", "hours") # "Tổng chấm theo giờ" column + detail sheet for these modes
+
     # Settings for colors & calculations
     settings = frappe.get_single("Attendance Matrix Settings")
     
@@ -595,7 +653,7 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
     # 2. Create Workbook
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Bang Cham Cong" if mode == "attendance" else "Bang Lam Them"
+    ws.title = "Bang Lam Them" if mode == "overtime" else "Bang Cham Cong"
 
     # Styles
     thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
@@ -643,6 +701,10 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
     # Dynamic Summary Headers
     for status_label in summary_headers:
         headers.append(status_label)
+
+    # Hourly-tracking monthly total column (independent stream)
+    if add_hours_total:
+        headers.append("Tổng chấm theo giờ")
 
     ws.append(headers)
 
@@ -760,6 +822,15 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
         # Summary Values
         for s in summary_headers:
             row.append(summary_counts[s])
+
+        # Hourly-tracking monthly total for this employee
+        if add_hours_total:
+            emp_total = 0.0
+            for col_info in date_cols:
+                hv = hours_log.get(f"{emp.name}_{col_info['date']}")
+                if hv:
+                    emp_total += float(hv)
+            row.append(round(emp_total, 2))
 
         ws.append(row)
         
@@ -882,6 +953,52 @@ def export_attendance_excel(month=None, year=None, department=None, company=None
     for i in range(len(configured_statuses)):
         col_letter = openpyxl.utils.get_column_letter(5 + len(date_cols) + i)
         ws.column_dimensions[col_letter].width = 10
+
+    if add_hours_total:
+        tong_idx = 5 + len(date_cols) + len(summary_headers)
+        ws.column_dimensions[openpyxl.utils.get_column_letter(tong_idx)].width = 16
+
+    # --- SEPARATE SHEET: per-day hourly tracking (Chấm theo giờ) ---
+    if add_hours_total:
+        ws2 = wb.create_sheet("Cham theo gio")
+        h2 = ["Mã NV", "Tên NV", "Phòng ban"]
+        for col_info in date_cols:
+            h2.append(col_info['obj'])
+        h2.append("Tổng chấm theo giờ")
+        ws2.append(h2)
+
+        for emp in employees:
+            r2 = [emp.name, emp.employee_name, emp.department]
+            emp_total = 0.0
+            for col_info in date_cols:
+                hv = hours_log.get(f"{emp.name}_{col_info['date']}")
+                if hv:
+                    r2.append(float(hv))
+                    emp_total += float(hv)
+                else:
+                    r2.append("")
+            r2.append(round(emp_total, 2))
+            ws2.append(r2)
+            for c in range(1, len(h2) + 1):
+                cell = ws2.cell(row=ws2.max_row, column=c)
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Header styling + date format
+        for col_idx, cell in enumerate(ws2[1], start=1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            if 4 <= col_idx < 4 + len(date_cols):
+                cell.number_format = 'dd/mm/yyyy'
+
+        ws2.column_dimensions['A'].width = 15
+        ws2.column_dimensions['B'].width = 25
+        ws2.column_dimensions['C'].width = 20
+        for i in range(len(date_cols)):
+            ws2.column_dimensions[openpyxl.utils.get_column_letter(4 + i)].width = 8
+        ws2.column_dimensions[openpyxl.utils.get_column_letter(4 + len(date_cols))].width = 16
 
     # Save
     from io import BytesIO
