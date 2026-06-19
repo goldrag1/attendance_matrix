@@ -1,3 +1,6 @@
+## v2.0.22
+- **Sửa lỗ hổng phân quyền chấm công (fail-closed)**: trước đây nhân viên không thuộc HR và không có User Permission phòng vẫn xem + chấm công được cho toàn bộ nhân viên (get_permitted_departments trả None = toàn quyền). Nay: chỉ System Manager / HR Manager / HR User (toàn công ty) hoặc người có User Permission phòng (theo phòng) mới chấm được; còn lại bị chặn (lưới rỗng + chặn lưu).
+
 ## v2.0.21
 - **Chấm theo giờ**: Thêm chế độ "Chấm theo giờ" (cạnh Điểm danh, Tăng ca) để nhập số giờ làm mỗi ngày, lưu độc lập trong Nhật ký chấm công theo giờ (không ảnh hưởng công / giờ chuẩn / lương). Thêm cột "Tổng chấm theo giờ" hiển thị ở cả chế độ Điểm danh và Chấm theo giờ. Xuất Excel có thêm sheet riêng cho giờ từng ngày.
 

@@ -5,16 +5,17 @@ from frappe.utils import getdate, nowdate, add_days, get_first_day, get_last_day
 
 def get_permitted_departments():
     """
-    Returns list of department names the current user has access to.
-    Returns None if user has full access (System Manager, HR Manager only).
-    HR User and other roles must use Department User Permission.
+    Tri-state quyền chấm công (đồng bộ với mobile facility_management/api/dept.py):
+      None      -> toàn công ty (System Manager / HR Manager / HR User)
+      [danh sách] -> theo phòng (có User Permission Department)
+      []        -> KHÔNG có quyền (fail-closed)
     """
-    # Check if user has full access via Role (Only System Manager and HR Manager)
+    # Full access via Role: System Manager, HR Manager, HR User.
     user_roles = frappe.get_roles(frappe.session.user)
-    if any(role in user_roles for role in ["System Manager", "HR Manager"]):
+    if any(role in user_roles for role in ["System Manager", "HR Manager", "HR User"]):
         return None  # Full access
-    
-    # Get departments from User Permission
+
+    # Departments từ User Permission (trưởng phòng/tổ được cấp UP phòng).
     permitted = frappe.db.get_all(
         "User Permission",
         filters={
@@ -23,8 +24,11 @@ def get_permitted_departments():
         },
         pluck="for_value"
     )
-    
-    return permitted if permitted else None  # Return None if no restrictions set
+
+    # FAIL-CLOSED: không HR + không UP -> [] = KHÔNG có quyền.
+    # (Trước đây trả None = fail-open, cho phép MỌI nhân viên xem & chấm công toàn bộ.)
+    # Caller xử lý []: get_matrix_data -> lưới rỗng; save_matrix_bulk -> chặn từng dòng.
+    return permitted
 
 @frappe.whitelist()
 def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None, overtime_type=None, active_only=True):
