@@ -273,6 +273,19 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
         "permission_info": permission_info
     }
 
+def _allow_matrix_write(doc):
+    """Cho phép ma trận sửa/xoá một bản ghi Attendance đã có.
+
+    Quyền chấm công của ma trận do get_permitted_departments() quyết định (đã chạy ở
+    đầu vòng lặp). Mọi thao tác GHI khác trong hàm này đều đi kèm ignore_permissions=True
+    để không bị User Permission của Frappe chặn — riêng cancel()/delete() trước đây bị bỏ
+    sót, nên người có User Permission "chỉ nhân viên của mình" (HR tự sinh cho mọi nhân
+    viên) TẠO được ô trống cho người khác nhưng SỬA lại ô đã chấm thì báo lỗi.
+    Đo trên prod 03/08: 93 lần lưu hỏng, 89 lần của một người trong 4 ngày.
+    """
+    doc.flags.ignore_permissions = True
+
+
 @frappe.whitelist()
 def save_matrix_bulk(data, mode="attendance"):
     """
@@ -297,9 +310,20 @@ def save_matrix_bulk(data, mode="attendance"):
             date = item.get("date")
             raw_status = item.get("status") # This is "Full ca" or "1"
             
-            if not employee or not date: 
+            if not employee or not date:
                 continue
-            
+
+            # Bản ghi chấm công được ghi với ignore_validate=True (để lách validate_status
+            # gắn cứng của HRMS), kéo theo Frappe cũng KHÔNG kiểm tra link → một mã nhân
+            # viên bịa ra vẫn tạo được phiếu chấm công và không báo gì. Chặn tại đây.
+            if not frappe.db.exists("Employee", employee):
+                results["errors"].append({
+                    "employee": employee,
+                    "date": date,
+                    "error": _("Không tìm thấy nhân viên"),
+                })
+                continue
+
             # PERMISSION: Check if user can edit this employee
             permitted_depts = get_permitted_departments()
             if permitted_depts is not None:
@@ -324,9 +348,10 @@ def save_matrix_bulk(data, mode="attendance"):
                 if not raw_status:
                     if existing:
                         doc = frappe.get_doc("Attendance", existing)
+                        _allow_matrix_write(doc)
                         if doc.docstatus == 1:
                             doc.cancel()
-                        doc.delete()
+                        doc.delete(ignore_permissions=True)
                         results["success"].append(f"Deleted {employee} on {date}")
                     continue # Skip creation
                 
@@ -379,8 +404,9 @@ def save_matrix_bulk(data, mode="attendance"):
 
                     if doc.docstatus == 1:
                         # If Submitted: Cancel & Delete -> Re-create
+                        _allow_matrix_write(doc)
                         doc.cancel()
-                        doc.delete()
+                        doc.delete(ignore_permissions=True)
                         should_create_new = True
                     else:
                         # If Draft: Update in place
@@ -493,10 +519,11 @@ def save_matrix_bulk(data, mode="attendance"):
                     
                     # Handle Submitted Document: Cancel first
                     if doc.docstatus == 1:
+                        _allow_matrix_write(doc)
                         doc.cancel()
-                        # After cancel, we can either delete and recreate, or amend. 
+                        # After cancel, we can either delete and recreate, or amend.
                         # Simplest here for matrix mode is delete and recreate to ensure clean state
-                        doc.delete()
+                        doc.delete(ignore_permissions=True)
                         # Re-create below logic
                         
                         doc = frappe.get_doc({
@@ -586,8 +613,21 @@ def save_matrix_bulk(data, mode="attendance"):
                     results["success"].append(f"Created hours {employee} on {date}")
 
         except Exception as e:
-            frappe.log_error(f"Error saving matrix for {item}: {str(e)}")
-            results["errors"].append(f"Error for {item.get('employee')} on {item.get('date')}: {str(e)}")
+            # str(frappe.PermissionError()) là chuỗi RỖNG, và frontend đọc
+            # e.employee / e.date / e.error — nhánh này trước đây nhét vào một CHUỖI nên
+            # người dùng chỉ thấy "undefined (undefined): undefined" (89 lần trong 4 ngày,
+            # không ai đoán được lỗi gì). Trả cùng shape với hai nhánh lỗi phía trên.
+            msg = str(e).strip() or type(e).__name__
+            # log_error 1 tham số -> Frappe tự đính traceback đầy đủ vào ô error;
+            # truyền tham số thứ 2 sẽ MẤT traceback. Tiêu đề bị chặn 140 ký tự.
+            frappe.log_error(
+                f"Error saving matrix for {item.get('employee')} on {item.get('date')}: {msg}"[:140]
+            )
+            results["errors"].append({
+                "employee": item.get("employee"),
+                "date": item.get("date"),
+                "error": msg,
+            })
             
     return results
 

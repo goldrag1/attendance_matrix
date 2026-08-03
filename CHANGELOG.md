@@ -1,3 +1,9 @@
+## v2.0.23
+- **Sửa lỗi không sửa được ô đã chấm**: người có vai HR nhưng bị User Permission bó vào nhân viên của chính mình (HR tự sinh cho mọi nhân viên) thì TẠO được ô trống cho người khác nhưng SỬA/XOÁ ô đã chấm lại báo lỗi — do cancel()/delete() thiếu ignore_permissions trong khi mọi thao tác ghi khác đều có. Đo trên prod: 93 lần lưu hỏng, 18 người thuộc diện ảnh hưởng. Không mất dữ liệu (0 ngày công bị treo).
+- **Thông báo lỗi đọc được**: hộp thoại "Lưu thất bại" trước đây hiện "undefined (undefined): undefined" vì nhánh lỗi trả về chuỗi trong khi giao diện đọc theo đối tượng; log cũng rỗng vì PermissionError không có nội dung. Nay nêu rõ nhân viên, ngày và lý do.
+- **Chặn chấm công cho mã nhân viên không tồn tại**: bản ghi được ghi với ignore_validate nên Frappe không kiểm tra link, một mã bịa ra vẫn tạo được phiếu.
+- **Test hồi quy**: thêm attendance_matrix/tests/test_matrix_save_permissions.py (4 test).
+
 ## v2.0.22
 - **Sửa lỗ hổng phân quyền chấm công (fail-closed)**: trước đây nhân viên không thuộc HR và không có User Permission phòng vẫn xem + chấm công được cho toàn bộ nhân viên (get_permitted_departments trả None = toàn quyền). Nay: chỉ System Manager / HR Manager / HR User (toàn công ty) hoặc người có User Permission phòng (theo phòng) mới chấm được; còn lại bị chặn (lưới rỗng + chặn lưu).
 
