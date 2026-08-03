@@ -139,6 +139,30 @@ class MatrixSavePermissions(unittest.TestCase):
 			frappe.get_all("Attendance", filters={"employee": self.target_emp, "attendance_date": FUTURE_DATE}),
 			[], "Ô phải được xoá hẳn")
 
+	def test_nhan_vien_thuong_van_bi_chan(self):
+		"""Bản vá cho cancel()/delete() đi qua tầng quyền của Frappe, nên tầng chặn duy nhất
+		còn lại là get_permitted_departments(). Test này canh nó: người không thuộc HR và
+		không có User Permission phòng vẫn KHÔNG được sửa công của người khác
+		(đúng luật fail-closed chốt 19/06/2026)."""
+		plain = "test.matrix.plain@example.invalid"
+		frappe.set_user("Administrator")
+		if not frappe.db.exists("User", plain):
+			u = frappe.get_doc({
+				"doctype": "User", "email": plain, "first_name": "Test Plain",
+				"send_welcome_email": 0, "enabled": 1, "user_type": "System User",
+			}).insert(ignore_permissions=True)
+			u.add_roles("Employee")
+		self.addCleanup(lambda: frappe.delete_doc("User", plain, force=True, ignore_permissions=True))
+
+		frappe.set_user(plain)
+		self.assertEqual(call("get_permitted_departments"), [],
+			"Nhân viên thường phải KHÔNG có phòng nào được chấm")
+		r = call("save_matrix_bulk", data=json.dumps([{
+			"employee": self.target_emp, "date": FUTURE_DATE, "status": self.other_status,
+		}]), mode="attendance")
+		self.assertTrue(r["errors"], "Nhân viên thường vẫn phải bị chặn")
+		self.assertEqual(r["success"], [], "Không được ghi gì cả")
+
 	def test_moi_dong_loi_deu_doc_duoc_khong_hien_undefined(self):
 		"""Giao diện đọc e.employee / e.date / e.error — nhánh except từng nhét CHUỖI vào
 		đây nên người dùng thấy 'undefined (undefined): undefined'."""
