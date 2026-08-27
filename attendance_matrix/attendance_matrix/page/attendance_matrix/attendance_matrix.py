@@ -30,6 +30,23 @@ def get_permitted_departments():
     # Caller xử lý []: get_matrix_data -> lưới rỗng; save_matrix_bulk -> chặn từng dòng.
     return permitted
 
+def _tai_cham_cong(ten):
+    """Tải bản ghi chấm công, ném câu NÓI ĐƯỢC VIỆC nếu nó vừa biến mất.
+
+    Bản ghi đã duyệt bị nhánh sửa xoá-rồi-tạo-lại, nên tên tra được đầu lượt có thể
+    không còn khi tới đây. `frappe.get_doc` ném "Điểm danh HR-ATT-… không tìm thấy" —
+    người dùng chưa từng gõ cái tên đó nên đọc như dữ liệu hỏng.
+    """
+    try:
+        return frappe.get_doc("Attendance", ten)
+    except frappe.DoesNotExistError:
+        frappe.clear_last_message()
+        frappe.throw(
+            _("Dòng công này vừa được người khác sửa. Tải lại bảng công rồi nhập lại ô đó."),
+            title=_("Bảng công đã đổi"),
+        )
+
+
 @frappe.whitelist()
 def get_matrix_data(month=None, year=None, department=None, company=None, employee=None, shift=None, overtime_type=None, active_only=True):
     # Ensure Custom Field for Dual Status exists
@@ -342,12 +359,21 @@ def save_matrix_bulk(data, mode="attendance"):
                 "attendance_date": date,
                 "docstatus": ["<", 2]
             })
+            # Nhánh "đã duyệt" bên dưới XOÁ rồi TẠO LẠI bản ghi, nên trong cùng một lượt
+            # lưu, tên vừa tra được có thể đã biến mất trước khi tới `get_doc` — và lúc đó
+            # cả dòng công của người ta hỏng với câu "Điểm danh HR-ATT-… không tìm thấy",
+            # thứ người dùng không thể hiểu vì họ chưa bao giờ gõ cái tên ấy.
+            # Đo prod tamdinh 27/08 08:54: 3 lượt liền, ID 23381–23385 biến mất khỏi bảng.
+            # Tên đã mất thì coi như CHƯA CÓ và đi tiếp nhánh tạo mới — đúng ý định của
+            # dòng dữ liệu, thay vì ném lỗi.
+            if existing and not frappe.db.exists("Attendance", existing):
+                existing = None
 
             if mode == "attendance":
                 # CASE 1: Deletion (Empty Status)
                 if not raw_status:
                     if existing:
-                        doc = frappe.get_doc("Attendance", existing)
+                        doc = _tai_cham_cong(existing)
                         _allow_matrix_write(doc)
                         if doc.docstatus == 1:
                             doc.cancel()
@@ -390,7 +416,7 @@ def save_matrix_bulk(data, mode="attendance"):
                 preserved_ot_hours = 0.0
 
                 if existing:
-                    doc = frappe.get_doc("Attendance", existing)
+                    doc = _tai_cham_cong(existing)
                     
                     # Capture existing OT data
                     if doc.get("matrix_overtime_logs"):
@@ -515,7 +541,7 @@ def save_matrix_bulk(data, mode="attendance"):
                                     # frappe.log_error(f"Space Parse Error: {str(e)}", "Matrix OT Debug")
                 
                 if existing:
-                    doc = frappe.get_doc("Attendance", existing)
+                    doc = _tai_cham_cong(existing)
                     
                     # Handle Submitted Document: Cancel first
                     if doc.docstatus == 1:
