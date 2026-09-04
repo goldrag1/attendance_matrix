@@ -303,6 +303,76 @@ def _allow_matrix_write(doc):
     doc.flags.ignore_permissions = True
 
 
+def _o_dang_song(employee, ngay):
+    """Mọi phiếu công CÒN SỐNG (docstatus < 2) của MỘT ô = (nhân viên × ngày), đọc bằng khoá ghi.
+
+    Vì sao `SELECT ... FOR UPDATE` chứ không `frappe.db.exists`:
+      · MariaDB ở đây chạy REPEATABLE-READ (đo prod tamdinh 04/09/2026) nên một truy vấn
+        thường trả ảnh chụp lúc mở giao dịch — hai lượt lưu chồng nhau đều KHÔNG thấy phiếu
+        của nhau rồi cùng tạo mới. Đọc-khoá luôn đọc bản mới nhất đã ghi sổ và chặn lượt sau
+        cho tới khi lượt trước ghi sổ xong ⇒ hai lượt song song không đẻ ra hai phiếu.
+      · trả về TẤT CẢ phiếu còn sống chứ không phải một cái: prod đang có 48 ô mang 2 phiếu
+        (101 dòng, 53 dòng thừa — đo 04/09/2026), nhánh cũ chỉ thấy một nên chấm lại vẫn trùng.
+    Ba giá trị đọc kèm là bản MỚI NHẤT — dùng để so "có gì đổi không" mà không cần tải tài liệu.
+    """
+    return frappe.db.sql("""
+        select name, docstatus, status, custom_matrix_status
+        from `tabAttendance`
+        where employee = %s and attendance_date = %s and docstatus < 2
+        order by creation, name
+        for update
+    """, (employee, ngay), as_dict=True)
+
+
+def _xoa_phieu_cong(ten):
+    """Huỷ + xoá một phiếu công. Trả False nếu nó vừa biến mất (lượt khác xoá trước)."""
+    try:
+        doc = frappe.get_doc("Attendance", ten)
+    except frappe.DoesNotExistError:
+        frappe.clear_last_message()
+        return False
+    _allow_matrix_write(doc)
+    if doc.docstatus == 1:
+        doc.cancel()
+    doc.delete(ignore_permissions=True)
+    return True
+
+
+GIAY_CHO_KHOA_O = 10   # đợi lượt lưu trước xong; hết giờ vẫn đi tiếp (còn chốt đọc-khoá)
+
+
+def _ten_khoa_o(employee, ngay):
+    return f"cham_cong:{frappe.conf.get('db_name')}:{employee}:{ngay}"[:180]
+
+
+def _xep_hang_theo_o(employee, ngay):
+    """Xếp hàng theo Ô: hai lượt lưu cùng (nhân viên, ngày) thì lượt sau ĐỢI, không chen.
+
+    Chỉ có `SELECT ... FOR UPDATE` là CHƯA đủ khi ô còn trống: hai giao dịch cùng giữ khoá
+    khoảng trống rồi cùng xin chèn ⇒ InnoDB báo khoá chéo và huỷ một lượt. Đo 04/09/2026:
+    dữ liệu vẫn đúng (1 phiếu) nhưng người dùng ăn hộp đỏ "Deadlock found…" — sửa một lỗi
+    câm thành một lỗi ồn thì chưa gọi là sửa. Khoá TÊN của MariaDB xếp hàng TRƯỚC khi ai
+    chạm vào bảng nên không có vòng chờ chéo.
+    Khoá tên KHÔNG tự nhả khi ghi sổ ⇒ bắt buộc nhả trong `finally` của từng ô.
+    """
+    frappe.db.sql("select get_lock(%s, %s)", (_ten_khoa_o(employee, ngay), GIAY_CHO_KHOA_O))
+
+
+def _nha_khoa_o(employee, ngay):
+    frappe.db.sql("select release_lock(%s)", (_ten_khoa_o(employee, ngay),))
+
+
+def _gom_phieu_trung(trung, employee, date, results):
+    """Ô đang ghi lại có nhiều hơn một phiếu ⇒ gom về một, ghi rõ trong kết quả trả về.
+
+    CHỈ đụng đúng ô người dùng vừa ghi — không quét bảng, không sửa dữ liệu lịch sử của
+    ô nào khác (chủ đầu tư chốt 04/09/2026: chỉ vá mã, 53 dòng thừa để rà tay).
+    """
+    for ten in trung:
+        if _xoa_phieu_cong(ten):
+            results["success"].append(f"Removed duplicate {ten} ({employee} on {date})")
+
+
 @frappe.whitelist()
 def save_matrix_bulk(data, mode="attendance"):
     """
@@ -312,7 +382,16 @@ def save_matrix_bulk(data, mode="attendance"):
     ]
     """
     changes = json.loads(data)
-    
+    # Vòng lặp dưới lấy khoá ghi theo (nhân viên, ngày). Hai lượt lưu hàng loạt chạm cùng
+    # tập ô mà đi ngược thứ tự nhau sẽ khoá chéo (InnoDB phải huỷ một lượt). Sắp xếp để
+    # MỌI lượt lấy khoá theo cùng một thứ tự.
+    # Cùng một ô gửi hai lần trong MỘT lượt thì chỉ giá trị cuối có nghĩa — gộp lại để
+    # không tự mình xếp hàng với chính mình.
+    _theo_o = {}
+    for _it in changes:
+        _theo_o[(str(_it.get("employee") or ""), str(_it.get("date") or ""))] = _it
+    changes = [_theo_o[k] for k in sorted(_theo_o)]
+
     settings = frappe.get_single("Attendance Matrix Settings")
     status_map_config = {s.status: s.payroll_status for s in settings.status_map} # Map: "Full ca" -> "Present"
 
@@ -322,7 +401,16 @@ def save_matrix_bulk(data, mode="attendance"):
     # frappe.log_error(f"Matrix Save Data: {data}, Mode: {mode}", "Attendance Matrix Save Debug")
     
     for item in changes:
+        dang_giu_khoa = None
         try:
+            # MỖI Ô LÀ MỘT GIAO DỊCH RIÊNG. Ghi sổ ở đầu mỗi vòng để: (1) không ôm khoá
+            # dòng của ô trước sang ô sau — đó là thứ tạo ra vòng chờ chéo giữa hai lượt
+            # lưu hàng loạt; (2) mở một ảnh chụp MỚI, vì MariaDB ở đây chạy REPEATABLE-READ
+            # nên ảnh chụp cũ giấu mất việc lượt song song vừa ghi.
+            # Hàm này vốn đã là "được ô nào hay ô đó" (trả success/errors theo từng dòng),
+            # nên ghi sổ theo ô không đổi hợp đồng với người gọi.
+            frappe.db.commit()
+
             employee = item.get("employee")
             date = item.get("date")
             raw_status = item.get("status") # This is "Full ca" or "1"
@@ -353,23 +441,22 @@ def save_matrix_bulk(data, mode="attendance"):
                     })
                     continue
 
-            # Check if exists
-            existing = frappe.db.exists("Attendance", {
-                "employee": employee,
-                "attendance_date": date,
-                "docstatus": ["<", 2]
-            })
-            # Nhánh "đã duyệt" bên dưới XOÁ rồi TẠO LẠI bản ghi, nên trong cùng một lượt
-            # lưu, tên vừa tra được có thể đã biến mất trước khi tới `get_doc` — và lúc đó
-            # cả dòng công của người ta hỏng với câu "Điểm danh HR-ATT-… không tìm thấy",
-            # thứ người dùng không thể hiểu vì họ chưa bao giờ gõ cái tên ấy.
-            # Đo prod tamdinh 27/08 08:54: 3 lượt liền, ID 23381–23385 biến mất khỏi bảng.
-            # Tên đã mất thì coi như CHƯA CÓ và đi tiếp nhánh tạo mới — đúng ý định của
-            # dòng dữ liệu, thay vì ném lỗi.
-            if existing and not frappe.db.exists("Attendance", existing):
-                existing = None
+            # Tra ô bằng ĐỌC-KHOÁ (xem `_o_dang_song`): vừa chống hai lượt song song cùng
+            # tạo phiếu, vừa thấy ĐỦ các phiếu trùng đang có chứ không chỉ một.
+            # Tên biến mất giữa lượt lưu không còn là chuyện phải đoán: truy vấn này luôn
+            # đọc bản mới nhất đã ghi sổ, nên `existing` chỉ mang tên CÒN SỐNG.
+            # (Đo prod tamdinh 27/08 08:54: 3 lượt liền hỏng vì đọc phải tên đã bị lượt khác
+            # xoá — `_tai_cham_cong` bên dưới vẫn giữ để câu báo nói được việc phải làm.)
+            _xep_hang_theo_o(employee, date)
+            dang_giu_khoa = (employee, date)
+
+            song = _o_dang_song(employee, date)
+            existing = song[0].name if song else None
+            trung = [r.name for r in song[1:]]   # phiếu THỪA của đúng ô này
 
             if mode == "attendance":
+                _gom_phieu_trung(trung, employee, date, results)
+
                 # CASE 1: Deletion (Empty Status)
                 if not raw_status:
                     if existing:
@@ -408,6 +495,17 @@ def save_matrix_bulk(data, mode="attendance"):
                 if final_erp_status:
                      ensure_attendance_option(final_erp_status)
                 
+                # Tự lưu bắn lại CÙNG một giá trị sau mỗi phím gõ (đo prod 04/09/2026:
+                # 4 lượt trong 40 ms, rồi 5 lượt nữa 15 giây sau — cùng payload 3 ngày).
+                # Lượt trùng phải là việc KHÔNG LÀM GÌ: chính vòng huỷ + xoá + tạo lại bên
+                # dưới là cỗ máy đẻ phiếu trùng, và là thứ ném TimestampMismatchError vào
+                # mặt lượt đi sau. So bằng giá trị đọc-khoá nên luôn là bản mới nhất.
+                if (song and song[0].docstatus == 1
+                        and (song[0].custom_matrix_status or "") == (final_custom_status or "")
+                        and (song[0].status or "") == (final_erp_status or "")):
+                    results["success"].append(f"Unchanged {employee} on {date}")
+                    continue
+
                 # Handle Update vs Re-create
                 should_create_new = True 
                 
@@ -461,6 +559,8 @@ def save_matrix_bulk(data, mode="attendance"):
                     results["success"].append(f"Created {employee} on {date}")
                     
             elif mode == "overtime":
+                _gom_phieu_trung(trung, employee, date, results)
+
                 # OVERTIME LOGIC
                 # 1. Parse raw_status (which is overtime string e.g. "OT1: 2; OT2: 1")
                 # We need Overtime Types config
@@ -600,10 +700,19 @@ def save_matrix_bulk(data, mode="attendance"):
             elif mode == "hours":
                 # HOURS LOGIC — independent store (Attendance Hours Log).
                 # Does NOT touch Attendance / working_hours / status. Two parallel streams.
-                existing_log = frappe.db.exists("Attendance Hours Log", {
-                    "employee": employee,
-                    "attendance_date": date
-                })
+                # Cùng luật với phiếu công: đọc-khoá, và ô có nhiều hơn một nhật ký thì
+                # gom về một. Prod 04/09/2026 đo được 0 nhật ký giờ bị trùng — chốt này là
+                # để cửa thứ hai không mở lại lỗ vừa bịt, không phải để dọn dữ liệu cũ.
+                song_gio = frappe.db.sql("""
+                    select name, hours from `tabAttendance Hours Log`
+                    where employee = %s and attendance_date = %s
+                    order by creation, name
+                    for update
+                """, (employee, date), as_dict=True)
+                existing_log = song_gio[0].name if song_gio else None
+                for _thua in song_gio[1:]:
+                    frappe.delete_doc("Attendance Hours Log", _thua.name, ignore_permissions=True)
+                    results["success"].append(f"Removed duplicate hours {_thua.name} ({employee} on {date})")
 
                 hours_val = None
                 if raw_status not in (None, ""):
@@ -623,6 +732,10 @@ def save_matrix_bulk(data, mode="attendance"):
                 if hours_val > 24:
                     hours_val = 24
 
+                if existing_log and float(song_gio[0].hours or 0) == float(hours_val):
+                    results["success"].append(f"Unchanged hours {employee} on {date}")
+                    continue
+
                 if existing_log:
                     log = frappe.get_doc("Attendance Hours Log", existing_log)
                     log.hours = hours_val
@@ -639,6 +752,9 @@ def save_matrix_bulk(data, mode="attendance"):
                     results["success"].append(f"Created hours {employee} on {date}")
 
         except Exception as e:
+            # Ô này hỏng thì bỏ ĐÚNG phần dở của nó (các ô trước đã ghi sổ ở đầu vòng),
+            # thay vì để một nửa nằm lại chờ ghi sổ chung ở cuối request.
+            frappe.db.rollback()
             # str(frappe.PermissionError()) là chuỗi RỖNG, và frontend đọc
             # e.employee / e.date / e.error — nhánh này trước đây nhét vào một CHUỖI nên
             # người dùng chỉ thấy "undefined (undefined): undefined" (89 lần trong 4 ngày,
@@ -654,7 +770,11 @@ def save_matrix_bulk(data, mode="attendance"):
                 "date": item.get("date"),
                 "error": msg,
             })
-            
+        finally:
+            if dang_giu_khoa:
+                _nha_khoa_o(*dang_giu_khoa)
+
+    frappe.db.commit()
     return results
 
 @frappe.whitelist()

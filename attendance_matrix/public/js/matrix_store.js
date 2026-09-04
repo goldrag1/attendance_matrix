@@ -115,28 +115,54 @@ export default {
         this.state.dirty.add(key);
     },
 
+    // CHỐT ĐANG-BAY (04/09/2026) — vì sao có, đọc kỹ trước khi gỡ:
+    // lưới gọi save() sau MỖI ô sửa (matrix_grid.js, "AUTO-SAVE"), và bản cũ không có chốt
+    // nào cả: đo trên prod tamdinh, một phiên bắn `save_matrix_bulk` 4 lượt trong 40 ms rồi
+    // 5 lượt nữa 15 giây sau, cùng một payload; 967/1036 lượt lưu (93%) nằm trong 207 chùm
+    // cùng-một-giây. Máy chủ xử song song ⇒ một ô đẻ ra HAI phiếu công đã duyệt, và lượt đi
+    // sau ăn TimestampMismatchError (vé FB-2026-00030).
+    // Debounce KHÔNG đủ: hết thời gian chờ là bắn, mạng chậm thì lượt trước vẫn đang bay.
+    // Ở đây: đang bay thì KHÔNG bắn lượt mới — chỉ ghi nhớ là còn ô bẩn; bay xong mới gửi
+    // MỘT lượt gộp mọi ô bẩn phát sinh trong lúc chờ. Máy chủ vẫn có chốt riêng của nó
+    // (đọc-khoá theo nhân viên × ngày) — cổng phải đứng ở CẢ hai phía.
     async save() {
+        if (this._dangLuu) {
+            this._conOBan = true;      // gộp vào lượt sau, đừng bắn chồng
+            return this._dangLuu;
+        }
         if (this.state.dirty.size === 0) {
             frappe.show_alert("Không có thay đổi nào");
             return;
         }
+        this._dangLuu = this._luuMotLuot();
+        try {
+            return await this._dangLuu;
+        } finally {
+            this._dangLuu = null;
+            if (this._conOBan) {
+                this._conOBan = false;
+                if (this.state.dirty.size > 0) this.save();
+            }
+        }
+    },
 
+    async _luuMotLuot() {
         this.state.saving = true;
+        // Chốt danh sách ô gửi đi NGAY BÂY GIỜ. Bản cũ `dirty.clear()` khi thành công, tức
+        // xoá luôn những ô người dùng vừa gõ TRONG LÚC lượt này đang bay — mất thầm lặng.
+        const lo = Array.from(this.state.dirty);
         const changes = [];
         const mode = this.state.viewMode; // 'attendance' or 'overtime'
 
-        this.state.dirty.forEach(key => {
+        lo.forEach(key => {
             const record = this.state.attendance[key];
             if (record) {
                 let statusVal = record.status;
                 if (mode === 'overtime') {
-                    // In Overtime Mode, we edit 'overtime_text' field (temporary field for editing)
-                    // or we map it from visual representation?
-                    // Let's assume the Grid writes to 'overtime_text' or re-uses 'status' if we are careful?
-                    // Ideally Grid writes to 'overtime_text'.
+                    // Lưới ghi chuỗi tăng ca đã định dạng vào 'overtime_text'.
                     statusVal = record.overtime_text || "";
                 } else if (mode === 'hours') {
-                    // In Hours Mode, the grid writes the typed number to 'hours_input'.
+                    // Chế độ chấm theo giờ: lưới ghi số giờ gõ vào 'hours_input'.
                     statusVal = (record.hours_input === undefined || record.hours_input === null) ? "" : record.hours_input;
                 }
 
@@ -171,7 +197,9 @@ export default {
                 console.error(r.message.errors);
             } else {
                 frappe.show_alert("Đã lưu thành công", 5);
-                this.state.dirty.clear();
+                // Chỉ bỏ đúng những ô vừa gửi — ô gõ thêm trong lúc chờ vẫn còn bẩn và sẽ
+                // đi trong lượt gộp ngay sau đây.
+                lo.forEach(key => this.state.dirty.delete(key));
             }
         } catch (e) {
             frappe.msgprint("Lỗi khi lưu");

@@ -62,12 +62,24 @@ class MatrixSavePermissions(unittest.TestCase):
 				"send_welcome_email": 0, "enabled": 1, "user_type": "System User",
 			}).insert(ignore_permissions=True)
 			u.add_roles("HR User", "Employee")
+		# Dọn trước khi dựng: từ v2.0.24 `save_matrix_bulk` ghi sổ theo từng ô (để không ôm
+		# khoá dòng sang ô sau), nên một lượt chạy đứt gánh giữa chừng KHÔNG còn được
+		# rollback cuốn đi — bộ đồ nghề phải tự dọn rác của lượt trước, nếu không lượt sau
+		# chết ở "User permission already exists" và đọc y như mã hỏng.
+		for _cu in frappe.get_all("User Permission", filters={"user": TEST_USER}, pluck="name"):
+			frappe.delete_doc("User Permission", _cu, force=True, ignore_permissions=True)
 		cls.up = frappe.get_doc({
 			"doctype": "User Permission", "user": TEST_USER, "allow": "Employee",
 			"for_value": cls.actor_emp, "apply_to_all_doctypes": 1,
 		}).insert(ignore_permissions=True)
 
 		# Ô đã chấm sẵn (đã duyệt) của NGƯỜI KHÁC — đúng thứ mà sửa lại thì hỏng.
+		for _cu in frappe.get_all("Attendance", filters={"attendance_date": FUTURE_DATE}, pluck="name"):
+			_d = frappe.get_doc("Attendance", _cu)
+			_d.flags.ignore_permissions = True
+			if _d.docstatus == 1:
+				_d.cancel()
+			_d.delete(ignore_permissions=True)
 		att = frappe.get_doc({
 			"doctype": "Attendance", "employee": cls.target_emp,
 			"attendance_date": FUTURE_DATE, "status": cls.payroll_status,
@@ -90,7 +102,11 @@ class MatrixSavePermissions(unittest.TestCase):
 			frappe.delete_doc("User Permission", name, force=True, ignore_permissions=True)
 		if frappe.db.exists("User", TEST_USER):
 			frappe.delete_doc("User", TEST_USER, force=True, ignore_permissions=True)
-		frappe.db.rollback()
+		# GHI SỔ, không rollback: từ v2.0.24 hàm lưu ghi sổ theo từng ô, nên bản ghi dựng ở
+		# setUpClass đã nằm thật trong cơ sở dữ liệu — `rollback()` ở đây chỉ huỷ chính mấy
+		# lệnh xoá vừa gọi và để rác sống tiếp (đo 04/09/2026: lượt chạy sau chết ở
+		# "User permission already exists").
+		frappe.db.commit()
 
 	def setUp(self):
 		frappe.set_user("Administrator")

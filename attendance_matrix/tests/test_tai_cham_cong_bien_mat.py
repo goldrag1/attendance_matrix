@@ -24,12 +24,24 @@ class TestTaiChamCongBienMat(unittest.TestCase):
     def setUp(self):
         self.src = open(_TEP, encoding="utf-8").read()
 
-    def test_tra_xong_con_kiem_lai_su_ton_tai(self):
-        """Ngay sau khi tra tên phải có bước xác nhận nó CÒN, trước khi dùng."""
-        m = re.search(r'existing = frappe\.db\.exists\("Attendance".*?\n(.*?)if mode ==', self.src, re.S)
-        self.assertIsNotNone(m, "không tìm thấy đoạn tra bản ghi")
-        self.assertIn("not frappe.db.exists(\"Attendance\", existing)", m.group(1))
-        self.assertIn("existing = None", m.group(1))
+    def test_ten_lay_ra_luon_la_ten_CON_SONG(self):
+        """Bước xác nhận "tên còn không" đã chuyển vào `_o_dang_song` (04/09/2026) — cùng
+        một bảo vệ, làm bằng ĐỌC-KHOÁ nên còn chặn được hai lượt lưu song song.
+
+        Ca này canh cái tính chất đó chứ không canh câu chữ cũ: chỗ tra ô phải lọc
+        `docstatus < 2` và phải là đọc-khoá (`for update`), và `existing` phải lấy ra TỪ
+        chính kết quả đó — không được quay lại `frappe.db.exists` (đọc thường, ảnh chụp cũ).
+        """
+        i = self.src.index("def _o_dang_song")
+        than = self.src[i: self.src.index("\ndef ", i + 1)]
+        self.assertIn("docstatus < 2", than, "phải chỉ lấy phiếu còn sống")
+        self.assertIn("for update", than, "phải là đọc-KHOÁ, không phải đọc thường")
+
+        m = re.search(r"song = _o_dang_song\(employee, date\)\n(.*?)\n\n", self.src, re.S)
+        self.assertIsNotNone(m, "không tìm thấy đoạn tra ô trong save_matrix_bulk")
+        self.assertIn("existing = song[0].name if song else None", m.group(1))
+        self.assertNotIn('frappe.db.exists("Attendance", existing)', self.src,
+            "quay lại đọc thường là mở lại đúng lỗ vừa bịt")
 
     def test_moi_cho_tai_deu_qua_MOT_cua(self):
         """Ba chỗ tải trước đây gọi thẳng get_doc — một chỗ quên là lỗi quay lại."""
