@@ -139,12 +139,15 @@ export default {
                 },
                 onCellValueChanged: (params) => {
                     if (params.newValue !== params.oldValue && viewMode !== 'overtime') {
-                        // Use custom method to handle Auto-Creation of Shift Type
+                        // Use custom method to handle Auto-Creation of Shift Type.
+                        // Gửi CHUỖI RỖNG thay vì undefined: frappe.call bỏ tham số undefined,
+                        // máy chủ nhận thiếu tham số → TypeError 500 (tamdinh 05/09/2026, bảng ca
+                        // trống nên ô chọn không có giá trị). Máy chủ mới xử lý rỗng có câu tử tế.
                         frappe.call({
                             method: 'attendance_matrix.attendance_matrix.page.attendance_matrix.attendance_matrix.set_employee_shift',
                             args: {
                                 employee: params.data.name,
-                                shift_name: params.newValue
+                                shift_name: params.newValue || ""
                             },
                             callback: (r) => {
                                 if (!r.exc) {

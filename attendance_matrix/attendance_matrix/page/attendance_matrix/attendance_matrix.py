@@ -1351,7 +1351,25 @@ def save_attendance_settings(status_map, shift_map, overtime_types=None):
     return "OK"
 
 @frappe.whitelist()
-def set_employee_shift(employee, shift_name):
+def set_employee_shift(employee, shift_name=None):
+    """Đặt ca mặc định cho nhân viên từ ô "Ca" của ma trận.
+
+    `shift_name` RỖNG là ca thật (05/09/2026, tamdinh FB-2026-00035): bảng ca trong Cấu hình
+    Chấm công chưa có dòng nào nên ô chọn của ag-Grid trống, người dùng rời ô là JS gửi
+    employee không kèm shift_name → TypeError 500, không câu nào nói phải làm gì. Nay:
+    rỗng + bảng ca trống ⇒ nói rõ ai sửa ở đâu; rỗng + có bảng ca ⇒ bỏ ca mặc định.
+    """
+    shift_name = (shift_name or "").strip()
+    if not shift_name:
+        settings = frappe.get_single("Attendance Matrix Settings")
+        if not settings.shift_map:
+            frappe.throw(
+                "Chưa có ca nào trong Cấu hình Chấm công nên ô Ca không chọn được. "
+                "Quản trị mở Attendance Matrix Settings → bảng Ca, thêm các ca "
+                "(vd. 'Ca hành chính', giờ bắt đầu/kết thúc) rồi chọn lại.",
+                title="Chưa cấu hình ca")
+        frappe.db.set_value("Employee", employee, "default_shift", None)
+        return "OK"
     # 1. Check if Shift Type exists
     if not frappe.db.exists("Shift Type", shift_name):
         # 2. Try to find definition in Settings
