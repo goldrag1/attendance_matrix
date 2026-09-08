@@ -6,6 +6,8 @@ import shutil
 import io
 from frappe import _
 
+from attendance_matrix.attendance_matrix.utils import quyen
+
 GITHUB_URL = "https://github.com/goldrag1/attendance_matrix"
 ZIP_URL = f"{GITHUB_URL}/archive/refs/heads/main.zip"
 VERSION_URL = f"https://raw.githubusercontent.com/goldrag1/attendance_matrix/main/VERSION"
@@ -91,6 +93,22 @@ def perform_update():
     """
     Downloads Zip from GitHub (specific commit), extracts and overwrites local files.
     """
+    # CỔNG GÁC (08/09/2026): hàm này GHI ĐÈ mã nguồn app trên máy chủ rồi `bench build` +
+    # `bench restart`. Trước đây chỉ có @frappe.whitelist(), nên mọi tài khoản đăng nhập
+    # (tamdinh: 190 tài khoản đang bật) bấm được "Update Now" trên màn chấm công và thay
+    # mã của cả site. Việc này là việc quản trị hệ thống, không phải việc chấm công.
+    if not frappe.has_permission("Attendance Matrix Settings", "write"):
+        quyen.chan(
+            tieu_de="Không cập nhật được phần mềm",
+            niem_tin="Nút cập nhật này không chỉ làm mới màn hình của anh/chị: nó tải mã nguồn mới "
+                     "về MÁY CHỦ, thay mã của cả công ty rồi khởi động lại hệ thống — mọi người "
+                     "đang chấm công sẽ mất kết nối vài giây.",
+            hien_trang=f"Tài khoản {frappe.session.user} không có quyền cập nhật phần mềm, "
+                       "nên hệ thống chưa tải và chưa thay gì cả.",
+            phai_lam="báo quản trị hệ thống bấm cập nhật vào giờ ít người dùng.",
+            ai_lam_duoc=quyen.vai_co_quyen("Attendance Matrix Settings", "write"),
+        )
+
     try:
         app_path = frappe.get_app_path("attendance_matrix")
         target_dir = os.path.dirname(app_path) # apps/attendance_matrix/

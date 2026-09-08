@@ -3,6 +3,8 @@ from frappe import _
 import json
 from frappe.utils import getdate, nowdate, add_days, get_first_day, get_last_day, date_diff
 
+from attendance_matrix.attendance_matrix.utils import quyen
+
 def get_permitted_departments():
     """
     Tri-state quyền chấm công (đồng bộ với mobile facility_management/api/dept.py):
@@ -10,9 +12,10 @@ def get_permitted_departments():
       [danh sách] -> theo phòng (có User Permission Department)
       []        -> KHÔNG có quyền (fail-closed)
     """
-    # Full access via Role: System Manager, HR Manager, HR User.
+    # Full access via Role: System Manager, HR Manager, HR User (khai ở utils/quyen.py —
+    # cổng gác và câu từ chối phải đọc CÙNG một danh sách, không chép sang đây).
     user_roles = frappe.get_roles(frappe.session.user)
-    if any(role in user_roles for role in ["System Manager", "HR Manager", "HR User"]):
+    if any(role in user_roles for role in quyen.VAI_TOAN_CONG_TY):
         return None  # Full access
 
     # Departments từ User Permission (trưởng phòng/tổ được cấp UP phòng).
@@ -257,8 +260,10 @@ def get_matrix_data(month=None, year=None, department=None, company=None, employ
         employee_options = []  # Empty = use search mode instead of dropdown
 
     # Get user permission info for display (use same logic as get_permitted_departments)
+    # Dòng này vốn quên HR User nên huy hiệu quyền báo "Department Restricted" cho người
+    # thực ra chấm được toàn công ty — chú thích ngay trên nó đã nói "same logic" từ lâu.
     user_roles = frappe.get_roles(frappe.session.user)
-    has_full_access = any(role in user_roles for role in ["System Manager", "HR Manager"])
+    has_full_access = any(role in user_roles for role in quyen.VAI_TOAN_CONG_TY)
     
     permission_info = {
         "has_full_access": has_full_access,
@@ -1262,8 +1267,27 @@ def ensure_attendance_option(status_val):
 
 @frappe.whitelist()
 def save_attendance_settings(status_map, shift_map, overtime_types=None):
+    # CỔNG GÁC (08/09/2026). Trước đây hàm này chỉ có @frappe.whitelist(): mọi tài khoản
+    # đăng nhập gọi được, và trước khi `doc.save()` kịp kiểm quyền nó đã kịp ghi thật một
+    # Property Setter lên DocType `Attendance` (thêm trạng thái bất kỳ cho CẢ SITE) —
+    # khối ấy nuốt lỗi bằng try/except nên không ai thấy gì. Gác TRƯỚC mọi đường ghi.
+    # Hỏi `has_permission` chứ không so tên vai: quyền sửa cấu hình là DỮ LIỆU của site
+    # (DocPerm/Custom DocPerm), khách cấp thêm vai là cổng đi theo, không phải sửa mã.
+    if not frappe.has_permission("Attendance Matrix Settings", "write"):
+        quyen.chan(
+            tieu_de="Không sửa được cấu hình chấm công",
+            niem_tin="Bảng Ca và bảng Trạng thái ở đây là cấu hình DÙNG CHUNG cho cả công ty, "
+                     "không phải lựa chọn riêng của bảng công anh/chị đang mở: lưu ở đây là đổi "
+                     "ô Ca và ô trạng thái của MỌI người đang chấm công, mọi tháng.",
+            hien_trang=f"Tài khoản {frappe.session.user} không có quyền sửa cấu hình chấm công, "
+                       "nên hệ thống KHÔNG lưu gì cả — bảng ca và bảng trạng thái vẫn nguyên như cũ.",
+            phai_lam="ghi lại các dòng vừa gõ (chụp màn hình là đủ) rồi nhờ quản trị hệ thống "
+                     "nhập giúp trong Cấu hình chấm công, hoặc xin cấp quyền sửa cấu hình cho tài khoản này.",
+            ai_lam_duoc=quyen.vai_co_quyen("Attendance Matrix Settings", "write"),
+        )
+
     doc = frappe.get_single("Attendance Matrix Settings")
-    
+
     if isinstance(status_map, str):
         status_map = json.loads(status_map)
     if isinstance(shift_map, str):
@@ -1359,6 +1383,30 @@ def set_employee_shift(employee, shift_name=None):
     employee không kèm shift_name → TypeError 500, không câu nào nói phải làm gì. Nay:
     rỗng + bảng ca trống ⇒ nói rõ ai sửa ở đâu; rỗng + có bảng ca ⇒ bỏ ca mặc định.
     """
+    # CỔNG GÁC (08/09/2026): hàm này ghi `Employee.default_shift` bằng `frappe.db.set_value`
+    # và tạo `Shift Type` với ignore_permissions=True — cả hai ĐỀU bỏ qua phân quyền, nên
+    # trước đây bất kỳ tài khoản đăng nhập nào cũng đổi được ca mặc định của bất kỳ nhân
+    # viên nào. Dùng ĐÚNG luật phạm vi của màn chấm công (`get_permitted_departments`),
+    # không phải một bộ vai riêng: người chấm công theo phòng vẫn phải sửa được ca của
+    # phòng mình, nếu không là chặn oan.
+    phong_duoc_phep = get_permitted_departments()
+    if phong_duoc_phep is not None:
+        phong_nhan_vien = frappe.db.get_value("Employee", employee, "department")
+        if phong_nhan_vien not in phong_duoc_phep:
+            pham_vi = (", ".join(phong_duoc_phep) if phong_duoc_phep
+                       else "chưa được cấp phòng nào")
+            quyen.chan(
+                tieu_de="Không đổi được ca của nhân viên này",
+                niem_tin="Ô \"Ca\" không phải ghi chú của bảng công tháng này: nó đổi ca MẶC ĐỊNH "
+                         "trong hồ sơ nhân sự của nhân viên, dùng cho mọi tháng sau và cho cả "
+                         "người khác chấm công.",
+                hien_trang=f"Nhân viên {employee} thuộc phòng {phong_nhan_vien or 'chưa khai'}, "
+                           f"ngoài phạm vi chấm công của anh/chị ({pham_vi}) — ca mặc định giữ nguyên.",
+                phai_lam="nhờ nhân sự đổi ca mặc định cho nhân viên này, hoặc xin cấp quyền phòng "
+                         f"\"{phong_nhan_vien or ''}\" (User Permission - Department) cho tài khoản này.",
+                ai_lam_duoc=quyen.VAI_TOAN_CONG_TY,
+            )
+
     shift_name = (shift_name or "").strip()
     if not shift_name:
         settings = frappe.get_single("Attendance Matrix Settings")
