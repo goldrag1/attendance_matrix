@@ -258,14 +258,18 @@ export default {
             // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
 
             // Excel Header Format: "1 Sat", "2 Sun"
-            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            // Use newline for wrapping
-            const headerName = `${d.getDate()} \n ${dayNames[dayOfWeek]}`;
+            // Thứ theo ngôn ngữ người dùng: tiếng Việt «CN, T2…T7» như lịch giấy, còn lại tiếng Anh.
+            const isVi = String((frappe.boot && frappe.boot.lang) || "").toLowerCase().startsWith("vi");
+            const dayNames = isVi
+                ? ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+                : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            // Hai dòng cố định (ngày / thứ) — CSS .am-day-header giữ "\n" bằng white-space: pre-line
+            const headerName = `${d.getDate()}\n${dayNames[dayOfWeek]}`;
 
             // Check Holiday
             const isHoliday = store.state.holidays.find(h => h.holiday_date === dateStr);
 
-            let headerClass = "text-center";
+            let headerClass = "text-center am-day-header";
             let cellClass = "text-center";
 
             if (dayOfWeek === 0) { headerClass += " sunday-header"; cellClass += " sunday-col"; }

@@ -128,3 +128,25 @@ body[data-route="attendance-matrix"] .content {
     min-height: 0;
     /* Crucial for flex item scrolling */
 }
+/* Tiêu đề cột ngày: luôn hai dòng «ngày / thứ», không để cột hẹp/rộng tự bẻ khác nhau */
+.am-day-header .ag-header-cell-text {
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.25;
+}
+
+/* Hàng chú thích mã chấm công: mỗi mục không bẻ giữa chừng, hàng tự xuống dòng khi hẹp */
+.am-legend-item {
+    white-space: nowrap;
+    margin-right: 14px;
+    margin-bottom: 2px;
+}
+.am-legend-item .badge {
+    margin-right: 4px;
+}
+.am-header-actions .btn {
+    white-space: nowrap;
+}
+.am-legend-label {
+    margin-right: 10px;
+}

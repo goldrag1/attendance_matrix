@@ -89,7 +89,18 @@ export default {
             console.log("Store: State Updated. Employees:", this.state.employees.length); // DEBUG LOG
 
             if (this.state.employees.length === 0) {
-                frappe.msgprint("Không tìm thấy nhân viên nào (Status='Active'). Kiểm tra lại dữ liệu Employee.");
+                // Câu báo phải nói ĐÚNG lý do bảng rỗng: phần lớn lần gặp là tài khoản chưa
+                // được giao phòng nào để chấm công, không phải dữ liệu nhân viên hỏng.
+                const pi = this.state.permission_info || {};
+                const f = this.state.filters || {};
+                const coLoc = !!(f.department || f.employee || f.shift || f.company);
+                if (!pi.has_full_access && !(pi.permitted_departments || []).length) {
+                    frappe.msgprint(__("Tài khoản của bạn chưa được giao phòng ban nào để chấm công, nên bảng chưa có ai. Nhờ quản trị hệ thống cấp quyền chấm công cho phòng ban bạn phụ trách."));
+                } else if (coLoc) {
+                    frappe.msgprint(__("Không có nhân viên nào khớp bộ lọc đang chọn. Bấm «Thiết lập lại» để bỏ lọc."));
+                } else {
+                    frappe.msgprint(__("Phòng ban bạn phụ trách chưa có nhân viên nào đang làm việc trong tháng này."));
+                }
             }
 
         } catch (e) {

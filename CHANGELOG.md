@@ -1,3 +1,10 @@
+## v2.0.27
+- **Tiêu đề cột ngày theo tiếng Việt**: «1 / CN», «2 / T2»… thay cho «Sun/Mon» (người dùng tiếng Anh vẫn thấy Sun/Mon). Luôn đúng hai dòng ngày / thứ: trước đây cột nào chữ ngắn («6 Fri») thì nằm một dòng, cột khác hai dòng.
+- **Chú thích mã chấm công tách ra hàng riêng dưới tiêu đề**, tự xuống dòng khi màn hẹp. Trước đây nó chen vào cùng hàng với các nút: ở khổ 1366px mỗi nhãn bị bẻ đôi («Làm / ca 1»), nút «Thiết lập lại», «Xuất Excel» cũng gãy dòng; các mục dính sát nhau vì lớp `gap-*` là của Bootstrap 5, Frappe v15 dùng Bootstrap 4. Ở khổ nhỏ hơn 1200px chú thích bị ẩn hẳn, nay luôn hiện.
+- Sửa chữ: nút «Show» bị bản dịch chung của Frappe đổi thành «Trình diễn» ⇒ «Hiển thị cột»; nhãn «CODE:» ⇒ «Mã chấm công».
+- **Bảng rỗng nói đúng lý do**: câu cũ «Không tìm thấy nhân viên nào (Status='Active'). Kiểm tra lại dữ liệu Employee» hiện cả khi lý do thật là tài khoản chưa được giao phòng ban nào để chấm công (đo prod 19/11/2026: một tài khoản mở màn 9 lần/30 ngày, lần nào cũng gặp câu này). Nay tách ba trường hợp: chưa được giao phòng / bộ lọc không khớp / phòng chưa có ai.
+- Chỉ đổi JS + CSS, không đổi quyền, không đổi dữ liệu.
+
 ## v2.0.26
 - **Gác quyền cho ba endpoint ghi vẫn đang mở cho mọi tài khoản đăng nhập** (đo prod tamdinh 08/09/2026: 190 tài khoản đang bật, 15 người thực sự dùng màn chấm công). Cùng lớp lỗi fail-open mà v2.0.22 đã vá cho quyền chấm công.
   - `save_attendance_settings` (bảng Ca / bảng Trạng thái / loại tăng ca DÙNG CHUNG cả site): trước đây không kiểm quyền gì. Bảng ca thật ra vẫn được `DocPerm` của DocType chặn ở bước `doc.save()` (chỉ System Manager ghi được — 8/189 tài khoản), nhưng TRƯỚC bước đó hàm đã kịp ghi một Property Setter lên DocType `Attendance` cho cả site, trong một khối `try/except` nuốt lỗi; và người bị chặn chỉ nhận một `PermissionError` trống, không nói được phải làm gì. Nay chặn ngay đầu hàm.

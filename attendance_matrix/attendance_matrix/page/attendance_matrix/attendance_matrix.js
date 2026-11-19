@@ -460,50 +460,14 @@ class AttendanceMatrixWrapper {
                          </div>
 
                          <!-- Interactive Area (Right: Legend + Buttons) -->
-                         <div class="d-flex align-items-center gap-3 ms-auto" style="min-width: 0;">
-                             <!-- Legend (Attendance) -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-if="store.viewMode === 'attendance'">
-                                <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Code') }}:</span>
-                                <div class="d-flex gap-2 align-items-center">
-                                    <div v-for="s in store.settings.status_map" :key="s.abbreviation" class="d-flex align-items-center gap-1">
-                                        <span class="badge border text-dark shadow-sm d-flex align-items-center justify-content-center" 
-                                              :style="{backgroundColor: s.color || '#fff', minWidth: '24px', height: '24px', fontSize: '11px'}" 
-                                              :title="s.status">
-                                            {{ s.abbreviation }}
-                                        </span>
-                                        <span class="small text-muted">{{ s.status }}</span>
-                                    </div>
-                                </div>
-                             </div>
-
-                             <!-- Legend (Overtime) -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else-if="store.viewMode === 'overtime'">
-                                <span class="text-muted small fw-bold text-uppercase tracking-wider">{{ __('Overtime Codes') }}:</span>
-                                <div class="d-flex gap-3 align-items-center">
-                                    <div v-for="ot in store.settings.overtime_types" :key="ot.abbreviation" class="d-flex align-items-center gap-1">
-                                        <span class="badge bg-light text-primary border shadow-sm" style="font-size: 11px;">
-                                            {{ ot.abbreviation }}
-                                        </span>
-                                        <span class="small text-muted fw-bold">{{ ot.overtime_name }}</span>
-                                    </div>
-                                    <span v-if="!store.settings.overtime_types || store.settings.overtime_types.length === 0" class="small text-muted italic">
-                                        ({{ __('No types defined') }})
-                                    </span>
-                                </div>
-                             </div>
-
-                             <!-- Legend (Hours) -->
-                             <div class="d-flex align-items-center gap-2 d-none d-xl-flex" v-else>
-                                <span class="text-muted small fw-bold">{{ __('Nhập số giờ làm mỗi ngày (vd 8 hoặc 6.5)') }}</span>
-                             </div>
-                             <div class="vr d-none d-xl-block mx-2"></div>
+                         <div class="d-flex align-items-center gap-3 ms-auto am-header-actions" style="min-width: 0;">
 
                              <!-- Actions -->
                              <div class="d-flex align-items-center gap-2">
                                 <!-- View Dropdown -->
                                  <div class="dropdown">
                                     <button class="btn btn-sm btn-light border shadow-sm dropdown-toggle" type="button" data-toggle="dropdown">
-                                        <i class="fa fa-eye text-muted"></i> <span class="d-none d-lg-inline ms-1">{{ __('Show') }}</span>
+                                        <i class="fa fa-eye text-muted"></i> <span class="d-none d-lg-inline ms-1">{{ __('Hiển thị cột') }}</span>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow p-2" style="min-width: 200px;">
                                         <h6 class="dropdown-header text-uppercase small font-weight-bold">{{ __('Display Columns') }}</h6>
@@ -547,6 +511,45 @@ class AttendanceMatrixWrapper {
                                 </button>
                              </div>
                          </div>
+                    </div>
+
+                    <!-- 1b. Chú thích mã: hàng riêng, tự xuống dòng — không chen vào hàng nút -->
+                    <div class="px-3 py-2 border-bottom bg-white flex-shrink-0">
+                             <!-- Legend (Attendance) -->
+                             <div class="d-flex align-items-center gap-2 flex-wrap" v-if="store.viewMode === 'attendance'">
+                                <span class="text-muted small fw-bold text-uppercase tracking-wider am-legend-label">{{ __('Mã chấm công') }}:</span>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <div v-for="s in store.settings.status_map" :key="s.abbreviation" class="d-flex align-items-center gap-1 am-legend-item">
+                                        <span class="badge border text-dark shadow-sm d-flex align-items-center justify-content-center" 
+                                              :style="{backgroundColor: s.color || '#fff', minWidth: '24px', height: '24px', fontSize: '11px'}" 
+                                              :title="s.status">
+                                            {{ s.abbreviation }}
+                                        </span>
+                                        <span class="small text-muted">{{ s.status }}</span>
+                                    </div>
+                                </div>
+                             </div>
+
+                             <!-- Legend (Overtime) -->
+                             <div class="d-flex align-items-center gap-2 flex-wrap" v-else-if="store.viewMode === 'overtime'">
+                                <span class="text-muted small fw-bold text-uppercase tracking-wider am-legend-label">{{ __('Overtime Codes') }}:</span>
+                                <div class="d-flex flex-wrap gap-3 align-items-center">
+                                    <div v-for="ot in store.settings.overtime_types" :key="ot.abbreviation" class="d-flex align-items-center gap-1 am-legend-item">
+                                        <span class="badge bg-light text-primary border shadow-sm" style="font-size: 11px;">
+                                            {{ ot.abbreviation }}
+                                        </span>
+                                        <span class="small text-muted fw-bold">{{ ot.overtime_name }}</span>
+                                    </div>
+                                    <span v-if="!store.settings.overtime_types || store.settings.overtime_types.length === 0" class="small text-muted italic">
+                                        ({{ __('No types defined') }})
+                                    </span>
+                                </div>
+                             </div>
+
+                             <!-- Legend (Hours) -->
+                             <div class="d-flex align-items-center gap-2 flex-wrap" v-else>
+                                <span class="text-muted small fw-bold">{{ __('Nhập số giờ làm mỗi ngày (vd 8 hoặc 6.5)') }}</span>
+                             </div>
                     </div>
 
                     <!-- 2. Filter Bar (Bottom) -->
